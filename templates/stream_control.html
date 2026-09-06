@@ -1,0 +1,195 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content="width=device-width,initial-scale=1">
+<header><b>Voting Stream Control</b><a href="/">Training ballot</a></header><div class=demo>TRAINING / SIMULATION ONLY</div>
+<div class=wrap>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+<div class=card>
+{% if post_reset_new_stream_locked %}
+<div class="pre-opening-ribbon">Voting Control</div>
+{% else %}
+<div class="pre-opening-ribbon">Pre-Opening Control</div>
+{% endif %}
+{% if terminal_lock %}
+<div class="terminal-lock-banner">
+{% if reset_required %}
+<b>PREVIOUS TERMINAL ASSIGNMENT DETECTED — RESET REQUIRED</b><br>
+This terminal is <b>not yet locked for voting</b>. Reset the terminal first, then select and open the new voting stream.
+{% else %}
+<b>THIS TERMINAL IS LOCKED</b><br>
+The polling-station stream is centrally reserved to this device. Another device cannot unlock, close, reset, or take over this lock.
+{% endif %}
+</div>
+{% if post_reset_new_stream_locked %}
+<div class="terminal-reset-form">
+ <a href="/" class="reset-terminal-btn reset-terminal-button training-ballot-after-reset"
+    onclick="this.classList.add('reset-clicked')">Training Ballot</a>
+</div>
+{% elif terminal_lock_vote_count == 0 or (row and row["closed_at"]) %}
+<form method="post" action="/terminal/reset" class="terminal-reset-form"
+      onsubmit="return confirm('Reset this terminal and choose a different polling station/stream?');">
+ <button type="submit" class="reset-terminal-btn reset-terminal-button"
+         onclick="this.classList.add('reset-clicked')">Reset Terminal for New Stream</button>
+</form>
+{% else %}
+<p class="reset-blocked"><b>Reset unavailable:</b> this open stream already has simulated votes. Close the stream first.</p>
+{% endif %}
+{% endif %}
+{% if error %}<div class=vote-error>{{error}}</div>{% endif %}
+{% if reopened_notice %}<div class="vote-success admin-reopen-success">{{reopened_notice}}</div>{% endif %}
+{% if not row and not terminal_lock %}
+<p><b>Before voting starts:</b> the system checks this polling-station stream and will open it only when it contains <b>0 pre-cast simulated votes</b>. Candidate agents can then verify and sign the printed opening report.</p>
+<form method=post action=/stream/open id=streamOpenForm>
+<input type="hidden" name="opening_lat" id="opening_lat">
+<input type="hidden" name="opening_lon" id="opening_lon">
+<input type="hidden" name="opening_accuracy" id="opening_accuracy">
+<div id="opening_gps_status" class="gps-open-status">GPS not yet captured.</div>
+<div class=control-grid>
+ <div><label>County</label><select id=sc_county name=county required><option value="">Select County</option></select></div>
+ <div><label>Constituency</label><select id=sc_constituency name=constituency required disabled><option value="">Select Constituency</option></select></div>
+ <div><label>Ward</label><select id=sc_ward name=ward required disabled><option value="">Select Ward</option></select></div>
+ <div><label>Polling Station</label><select id=sc_station name=poll_station required disabled><option value="">Select Polling Station</option></select></div>
+ <div><label>Stream</label><select id=sc_stream name=stream required disabled><option value="">Select Stream</option></select></div>
+</div>
+<p>Scheduled opening: <b>{{open_time or "Not configured"}}</b> &nbsp; Official closing: <b>08:00 (8:00 AM) — TESTING</b></p>
+<div class="open-stream-submit-row"><button type="button" id="open_stream_btn" class="open-stream-submit-btn">Capture GPS, Verify 0 Pre-Cast Votes & Open Stream</button></div></form>
+<script>
+const $=id=>document.getElementById(id);
+function fill(sel,rows,placeholder){
+ sel.innerHTML='<option value="">'+placeholder+'</option>';
+ rows.forEach(r=>{const o=document.createElement('option');o.value=r.name;o.textContent=r.label||r.name;sel.appendChild(o)});
+ sel.disabled=false;
+}
+function resetSelect(sel,placeholder){ sel.innerHTML='<option value="">'+placeholder+'</option>'; sel.disabled=true; }
+async function loadLevel(level,parent=''){
+ const url='/api/hierarchy?level='+encodeURIComponent(level)+(parent?'&parent='+encodeURIComponent(parent):'');
+ const r=await fetch(url,{cache:'force-cache'});
+ if(!r.ok) throw new Error('Hierarchy request failed');
+ const d=await r.json();
+ return d.rows||[];
+}
+
+// Load only 47 counties first instead of downloading the entire national
+// hierarchy. Each lower level is fetched only after its parent is selected.
+loadLevel('counties').then(rows=>fill($('sc_county'),rows,'Select County')).catch(()=>{
+ $('sc_county').innerHTML='<option value="">Unable to load counties — refresh page</option>';
+});
+$('sc_county').onchange=async function(){
+ resetSelect($('sc_constituency'),'Loading Constituencies…');
+ resetSelect($('sc_ward'),'Select Ward'); resetSelect($('sc_station'),'Select Polling Station'); resetSelect($('sc_stream'),'Select Stream');
+ if(!this.value){ resetSelect($('sc_constituency'),'Select Constituency'); return; }
+ try{ fill($('sc_constituency'),await loadLevel('constituencies',this.value),'Select Constituency'); }
+ catch(e){ resetSelect($('sc_constituency'),'Unable to load constituencies'); }
+};
+$('sc_constituency').onchange=async function(){
+ resetSelect($('sc_ward'),'Loading Wards…'); resetSelect($('sc_station'),'Select Polling Station'); resetSelect($('sc_stream'),'Select Stream');
+ if(!this.value){ resetSelect($('sc_ward'),'Select Ward'); return; }
+ try{ fill($('sc_ward'),await loadLevel('wards',this.value),'Select Ward'); }
+ catch(e){ resetSelect($('sc_ward'),'Unable to load wards'); }
+};
+$('sc_ward').onchange=async function(){
+ resetSelect($('sc_station'),'Loading Polling Stations…'); resetSelect($('sc_stream'),'Select Stream');
+ if(!this.value){ resetSelect($('sc_station'),'Select Polling Station'); return; }
+ try{ fill($('sc_station'),await loadLevel('stations',this.value),'Select Polling Station'); }
+ catch(e){ resetSelect($('sc_station'),'Unable to load polling stations'); }
+};
+$('sc_station').onchange=async function(){
+ resetSelect($('sc_stream'),'Loading Streams…');
+ if(!this.value){ resetSelect($('sc_stream'),'Select Stream'); return; }
+ try{ fill($('sc_stream'),await loadLevel('streams',this.value),'Select Stream'); }
+ catch(e){ resetSelect($('sc_stream'),'Unable to load streams'); }
+};
+
+const openBtn=document.getElementById('open_stream_btn');
+if(openBtn){
+ openBtn.addEventListener('click',()=>{
+   openBtn.classList.add('selected');
+   const form=document.getElementById('streamOpenForm');
+   const status=document.getElementById('opening_gps_status');
+   if(!form.reportValidity()){ openBtn.classList.remove('selected'); return; }
+   if(!navigator.geolocation){
+     status.textContent='GPS unavailable in this browser. Stream not opened.';
+     openBtn.classList.remove('selected');
+     return;
+   }
+   openBtn.disabled=true;
+   status.textContent='Capturing current laptop/device GPS…';
+   navigator.geolocation.getCurrentPosition(
+     pos=>{
+       document.getElementById('opening_lat').value=pos.coords.latitude.toFixed(7);
+       document.getElementById('opening_lon').value=pos.coords.longitude.toFixed(7);
+       document.getElementById('opening_accuracy').value=pos.coords.accuracy.toFixed(1);
+       status.textContent='GPS captured. Opening stream…';
+       form.submit();
+     },
+     err=>{
+       let msg='GPS could not be captured.';
+       if(err.code===1) msg='Location permission denied. Allow Location for this site, then try again.';
+       else if(err.code===2) msg='Current GPS position unavailable. Check device location services.';
+       else if(err.code===3) msg='GPS request timed out. Try again.';
+       status.textContent=msg;
+       openBtn.disabled=false;
+       openBtn.classList.remove('selected');
+     },
+     {enableHighAccuracy:true,timeout:20000,maximumAge:0}
+   );
+ });
+}
+</script>
+{% else %}
+<p><b>Polling Station:</b> {{row["poll_station"]}} &nbsp; <b>Stream:</b> {{row["stream"]}}</p>
+<p class=clean-check>✓ PRE-OPENING CHECK: 0 PRE-CAST SIMULATED VOTES — SYSTEM CLEAN</p>
+<p><b>Opened:</b> {{row["opened_at"]}}<br><b>Closed:</b> {{row["closed_at"] or "Still open"}}</p>
+{% if row and not row["closed_at"] %}
+ <div class="close-control-panel">
+  {% if owns_current_stream and can_close_now %}
+   <form method=post action=/stream/close class="close-stream-form"
+         onsubmit="return confirm('Close this voting stream now? Voting will stop. An authenticated administrator can reopen it later if additional eligible voters must participate.');">
+    <input type=hidden name=poll_station value="{{row['poll_station']}}">
+    <input type=hidden name=stream value="{{row['stream']}}">
+    <button class="close-stream-btn">Close Voting Stream</button>
+   </form>
+   <div class="close-help active-close-help">
+    Official closing time has been reached. Closing stops voting. Only an authenticated administrator can reopen this training stream later.
+   </div>
+  {% else %}
+   <div class="close-stream-form">
+    <button type="button" class="close-stream-btn close-stream-btn-disabled" disabled aria-disabled="true">
+     Close Voting Stream
+    </button>
+   </div>
+   <div class="closing-time-lock">
+    {% if not owns_current_stream %}
+     <b>Closing is protected:</b> only the device that owns this polling-station stream may close it.
+    {% elif not can_close_now %}
+     <b>Closing button will activate at {{official_close_time}}.</b><br>
+     Voting remains open and the stream stays locked for subsequent voters until then.
+    {% endif %}
+   </div>
+  {% endif %}
+ </div>
+{% elif row and row["closed_at"] %}
+ <div class="stream-permanently-closed">
+  <b>VOTING STREAM CLOSED</b><br>
+  Voting is stopped for this stream. Existing simulated votes remain preserved.
+ </div>
+ <div class="admin-reopen-panel">
+  {% if stream_admin_logged_in %}
+   <form method="post" action="/stream/admin-reopen"
+         onsubmit="return confirm('ADMIN OVERRIDE: Reopen this closed training stream so additional eligible voters can continue? Existing votes will be preserved. Previously deposited repository PDFs for this stream will be removed and regenerated after the stream is closed again.');">
+    <input type="hidden" name="poll_station" value="{{row['poll_station']}}">
+    <input type="hidden" name="stream" value="{{row['stream']}}">
+    <button type="submit" class="admin-reopen-btn">Admin Reopen Voting Stream</button>
+   </form>
+   <div class="admin-reopen-help"><b>Administrator override:</b> reopening preserves all existing votes and permits additional eligible voters to continue.</div>
+  {% else %}
+   <a class="admin-reopen-btn" href="{{ url_for('repository_admin_login', next=url_for('stream_control', poll_station=row['poll_station'], stream=row['stream'])) }}">Admin Login to Reopen Stream</a>
+   <div class="admin-reopen-help">Only an authenticated administrator can reopen a formally closed training stream.</div>
+  {% endif %}
+ </div>
+ <div class="closed-tally-action">
+  <a class="closed-tally-btn" href="/tallies">Open / View / Print Tally Dashboard</a>
+ </div>
+{% endif %}
+<p><a target="_blank" rel="noopener" href="/stream/report?poll_station={{row['poll_station']|urlencode}}&stream={{row['stream']|urlencode}}">View / Print Opening Report</a> <small>(opens in a new tab)</small></p>
+{% endif %}</div></div>

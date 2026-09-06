@@ -1,0 +1,17 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content="width=device-width,initial-scale=1">
+<header><b>Central PDF Report Repository</b>{% if is_admin %}<form method="post" action="{{ url_for('repository_admin_logout') }}" style="display:inline"><button type="submit" class="repo-admin-link">Admin Logout</button></form>{% else %}<a href="{{ url_for('repository_admin_login', next=request.full_path) }}">Admin Login</a>{% endif %}</header>
+<div class=demo>TRAINING / SIMULATION ONLY — central archive of formally closed stream reports.</div>
+<div class=wrap><div class="odm-screen-header project-screen-brand"><img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image"></div>
+<div class="repository-ribbon">Central Polling-Station Stream PDF Repository</div>
+{% if error %}<div class=error>{{error}}</div>{% endif %}
+<div class="repo-total">Total Reports: <strong>{{total_reports}}</strong></div>
+<div class="repo-card-grid">
+{% for g in groups %}
+<a class="repo-category-card" href="/report-repository/{{g.key}}">
+  <div class="repo-category-title">{{g.title}}</div>
+  <div class="repo-category-count">{{g.count}} PDF report(s)</div>
+  <span class="repo-open-btn">OPEN</span>
+</a>
+{% endfor %}
+</div>
+</div>

@@ -1,0 +1,75 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content="width=device-width,initial-scale=1">
+<div class=report-page>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+<div class=no-print><button onclick="window.print()">Print A4 Report</button></div>
+{% if report_header_image_url %}
+<div class="print-report-header"><img src="{{report_header_image_url}}" alt="Report Header"></div>
+{% endif %}
+<h1>Voting Stream Opening Report</h1><p><b>TRAINING / SIMULATION ONLY</b></p>
+<table>
+<tr><th>Polling Station</th><td>{{row["poll_station"]}}</td></tr><tr><th>Stream</th><td>{{row["stream"]}}</td></tr><tr><th>Date</th><td>{{row["session_date"]}}</td></tr>
+<tr><th>Pre-cast votes at opening</th><td>0 — VERIFIED CLEAN</td></tr>
+<tr><th>Scheduled opening</th><td>{{open_time or "Not configured"}}</td></tr><tr><th>Actual opening timestamp</th><td>{{row["opened_at"]}}</td></tr>
+<tr><th>Opening check</th><td>{% if open_ok is sameas true %}ON SCHEDULE{% elif open_ok is sameas false %}DIFFERS FROM CONFIGURED TIME{% else %}SCHEDULE NOT CONFIGURED{% endif %}</td></tr>
+<tr><th>Opening Station GPS Latitude</th><td id="opening-gps-lat">{{ "%.7f"|format(row["opening_lat"]) if row["opening_lat"] is not none else "Not captured at opening" }}</td></tr>
+<tr><th>Opening Station GPS Longitude</th><td id="opening-gps-lon">{{ "%.7f"|format(row["opening_lon"]) if row["opening_lon"] is not none else "Not captured at opening" }}</td></tr>
+<tr><th>GPS Accuracy</th><td id="opening-gps-accuracy">{{ (row["opening_accuracy"]|round(1)|string) + " metres" if row["opening_accuracy"] is not none else "Not available" }}</td></tr>
+<tr><th>GPS Capture Status</th><td id="opening-gps-status">{{ "Captured and stored when stream opened" if row["opening_lat"] is not none and row["opening_lon"] is not none else "Opening GPS was not stored" }}</td></tr>
+</table>
+<h2>Opening Certification — Candidate Agents</h2>
+<p>We, the undersigned agents, verify that before simulated voting started in this polling-station stream, the system displayed zero pre-cast simulated votes and was clean.</p>
+
+{% if candidate_error %}
+<div class="vote-error">{{candidate_error}}</div>
+{% endif %}
+
+{% for position in position_rows %}
+<div class="signature-section">
+<h3>{{position.title}}</h3>
+<table class="agent-sign-table">
+<tr><th>Candidate</th><th>Agent Name</th><th>Signature</th><th>Date / Time</th></tr>
+{% for candidate in position.candidates %}
+<tr>
+ <td><b>{{candidate.name}}</b></td>
+ <td class=sig></td>
+ <td class=sig></td>
+ <td class=sig></td>
+</tr>
+{% else %}
+<tr>
+ <td colspan="4"><b>No active registered candidate found for {{position.title}} in this electoral area.</b></td>
+</tr>
+{% endfor %}
+</table>
+</div>
+{% endfor %}
+
+<h3>Opening — Election Officials</h3>
+<p>Presiding Officer: Name __________________ Signature __________________ Date/Time __________________</p>
+<p>Returning Officer: Name __________________ Signature __________________ Date/Time __________________</p>
+
+</div>
+<script>
+(function(){
+ const lat=document.getElementById('opening-gps-lat');
+ const lon=document.getElementById('opening-gps-lon');
+ const acc=document.getElementById('opening-gps-accuracy');
+ const status=document.getElementById('opening-gps-status');
+ if(!lat || lat.textContent.indexOf('Not captured')===-1) return;
+ if(!navigator.geolocation){ status.textContent='Opening GPS not stored; browser GPS unavailable'; return; }
+ navigator.geolocation.getCurrentPosition(
+  p=>{
+   lat.textContent=p.coords.latitude.toFixed(7);
+   lon.textContent=p.coords.longitude.toFixed(7);
+   acc.textContent=Math.round(p.coords.accuracy)+' metres';
+   status.textContent='Current device GPS shown as fallback; reopen stream to permanently store opening GPS';
+  },
+  e=>{
+   status.textContent=(e.code===1?'Location permission denied':'Opening GPS not stored and current GPS unavailable');
+  },
+  {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+ );
+})();
+</script>

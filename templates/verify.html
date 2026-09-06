@@ -1,0 +1,63 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content='width=device-width,initial-scale=1'>
+<header><b>Training E-Ballot Prototype</b></header>
+<div class=demo>TRAINING / SIMULATION ONLY — not official voting.</div>
+
+<div class=wrap>
+ <div class=card>
+  <div class="odm-screen-header project-screen-brand">
+   <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+  </div>
+
+  <div class="odm-verification-ribbon">ODM Voter ID &amp; Photo Verification</div>
+
+  <div class="open-stream-action-row">
+   <a class="open-stream-action-btn" href="/stream-control">Open Voting Stream &amp; Print Opening Report</a>
+  </div>
+
+  {% if error %}<div class='vote-error'>{{error}}</div>{% endif %}
+
+  {% if stream_ready and terminal_lock %}
+   <p class=muted>Voting stream is retained on this computer for each subsequent voter.</p>
+
+   <div class="locked-station-panel">
+    <div class="locked-station-name">This computer is assigned to:
+<span class="assigned-stream-name">{{ terminal_lock.stream|replace('_',' ')|upper }}</span></div>
+    <div class="locked-station-hierarchy">
+     {{ terminal_lock.county|replace('_',' ')|upper }}
+     › {{ terminal_lock.constituency|replace('_',' ')|upper }}
+     › {{ terminal_lock.ward|replace('_',' ')|upper }}
+    </div>
+    <div class="stream-lock-status">Voting stream locked — pre-opening completed</div>
+   </div>
+
+   <form method=post action=/start id=voter_form>
+    <div id=voter_panel>
+     <h3 class="next-voter-title">Next voter</h3>
+     <input name=voter_id id=voter_id class=voter-id-input placeholder='Enter voter ID' required autocomplete=off autofocus>
+     <div class=actions><span></span><button id=start_btn>Verify voter photos</button></div>
+    </div>
+   </form>
+
+  {% else %}
+   <div class="unassigned-station-panel">
+    <div class="unassigned-title">This computer is not yet assigned to any polling station.</div>
+    <div class="unassigned-help">
+     {% if reset_required %}
+     A previous terminal assignment exists. Reset the terminal first, then select and open the new voting stream and generate the pre-opening report.
+     {% else %}
+     Open and assign a voting stream first. Voter ID entry will remain disabled until the voting stream has been locked and the pre-opening report has been generated.
+     {% endif %}
+    </div>
+   </div>
+
+   <div class="blocked-voter-panel">
+    <h3 class="next-voter-title">Next voter</h3>
+    <input class="voter-id-input" placeholder="Enter voter ID" disabled aria-disabled="true">
+    <div class=actions><span></span><button type=button disabled aria-disabled="true">Verify voter photos</button></div>
+    <div class="voter-entry-blocked">
+     Voter verification is unavailable until the pre-opening process is complete.
+    </div>
+   </div>
+  {% endif %}
+ </div>
+</div>

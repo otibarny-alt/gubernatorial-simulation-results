@@ -1,0 +1,18 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content='width=device-width,initial-scale=1'><header><b>Training ballot complete</b>{% if stream_row and stream_row["closed_at"] %}
+<a href=/tallies>Simulated Tallies</a>
+{% else %}
+<span class="header-tally-locked">Simulated Tallies Locked</span>
+{% endif %}</header><div class=demo>TRAINING / SIMULATION ONLY — no official vote was cast.</div><div class=wrap>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+<div class=card><h2>Six simulated selections saved</h2><p>{{geo.poll_station}} · {{geo.stream}}</p><div class=actions>
+ <a class='btn secondary' href=/>Next voter on this computer</a>
+ {% if stream_row and stream_row["closed_at"] %}
+  <a class=btn href=/tallies>Open / View / Print Tally Dashboard</a>
+ {% else %}
+  <button type="button" class="tally-disabled-btn" disabled aria-disabled="true">
+   Tally Dashboard Locked Until Voting Closes
+  </button>
+ {% endif %}
+</div></div></div>

@@ -1,0 +1,28 @@
+<!doctype html>
+<link rel=stylesheet href=/static/style.css>
+<meta name=viewport content='width=device-width,initial-scale=1'>
+<header>
+ <b>Simulated Tallies</b>
+ <a href="/">Training ballot</a>
+</header>
+<div class=demo>TRAINING / SIMULATION ONLY — not official voting.</div>
+<div class=wrap>
+ <div class=card>
+  <div class="odm-screen-header project-screen-brand">
+   <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+  </div>
+  <div class="tallies-locked-ribbon">Tally Dashboard Locked</div>
+  <div class="tallies-locked-panel">
+   <div class="tallies-locked-title">Tallies cannot be opened, viewed or printed until this voting stream has been formally closed.</div>
+   <p>Official closing time: <b>{{official_close_time}}</b>.</p>
+   {% if stream_row and not stream_row["closed_at"] %}
+   <p>This voting stream is still open. Continue voter verification and voting until the official closing process is completed.</p>
+   {% elif not terminal_lock %}
+   <p>No active terminal stream is available for tally access.</p>
+   {% endif %}
+  </div>
+  <div class="tallies-return">
+   <a class="open-stream-action-btn" href="/">Return to Training Ballot</a>
+  </div>
+ </div>
+</div>

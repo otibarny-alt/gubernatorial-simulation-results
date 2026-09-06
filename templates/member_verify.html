@@ -1,0 +1,101 @@
+<!doctype html>
+<link rel=stylesheet href=/static/style.css>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<header><b>Training E-Ballot Prototype</b></header>
+<div class=demo>TRAINING / SIMULATION ONLY — not official voting.</div>
+<div class=wrap>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+
+ <div class=card>
+  <h2>ODM Membership Photo Verification</h2>
+  <p>Compare the voter physically present with the two photographs below before continuing to the simulated ballot.</p>
+
+  <div class="member-details">
+   <div><b>National ID:</b> {{member.national_id}}</div>
+   <div><b>Name:</b> {{member.full_name or "Not available"}}</div>
+   <div><b>ODM Membership No:</b> {{member.membership_no or "Not available"}}</div>
+   <div><b>Designated Polling Station:</b> {{member.polling_station_label or member.polling_station_key or "Not available"}}</div>
+   <div><b>Designated Polling Station Key:</b> {{member.polling_station_key or "Not available"}}</div>
+   <div><b>Current Voting Station:</b> {{geo.poll_station}}</div>
+   <div><b>Current Stream:</b> {{geo.stream}}</div>
+  </div>
+
+  <div class="photo-verify-grid">
+   <div class="photo-card">
+    <h3>ID Photo</h3>
+    {% if member.id_photo_name %}
+     <img class="zoomable-member-photo" src="/membership-photo/{{member.submission_id}}/id" alt="ID Photo" tabindex="0" role="button" aria-label="Zoom ID Photo" onclick="openPhotoZoom(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhotoZoom(this);}">
+    {% else %}
+     <div class=photo-missing>ID photo not available in this membership record.</div>
+    {% endif %}
+   </div>
+   <div class="photo-card">
+    <h3>Passport Photo</h3>
+    {% if member.passport_photo_name %}
+     <img class="zoomable-member-photo" src="/membership-photo/{{member.submission_id}}/passport" alt="Passport Photo" tabindex="0" role="button" aria-label="Zoom Passport Photo" onclick="openPhotoZoom(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhotoZoom(this);}">
+    {% else %}
+     <div class=photo-missing>Passport photo not available in this membership record.</div>
+    {% endif %}
+   </div>
+  </div>
+
+  {% if error %}<div class="station-mismatch">{{error}}</div>{% endif %}
+
+  {% if station_match %}
+  <div class="station-match">
+   ✓ POLLING STATION MATCH CONFIRMED<br>
+   This voter is registered in the ODM Membership Portal at the same polling station as this current voting terminal.
+  </div>
+  {% else %}
+  <div class="station-mismatch">
+   ✕ POLLING STATION MISMATCH — VOTING DISALLOWED<br>
+   ODM station: <b>{{member.polling_station_label or member.polling_station_key or "Not available"}}</b><br>
+   Current voting station: <b>{{geo.poll_station}}</b>
+  </div>
+  {% endif %}
+
+  <div class="identity-warning">
+   Continue only after the officer has visually confirmed that the person presenting the ID matches the ODM membership photographs.
+  </div>
+
+  <div class=actions>
+   <form method=post action=/membership/cancel><button class=secondary type=submit>Cancel / Different Voter</button></form>
+   {% if station_match %}
+   <form method=post action=/membership/confirm><button type=submit>Identity Confirmed — Continue to Simulation Ballot</button></form>
+   {% else %}
+   <button type=button disabled>Voting Not Allowed at This Station</button>
+   {% endif %}
+  </div>
+ </div>
+</div>
+
+<div id="member-photo-lightbox" class="member-photo-lightbox" aria-hidden="true" onclick="closePhotoZoom(event)">
+ <button type="button" class="member-photo-lightbox-close" aria-label="Close enlarged photo" onclick="closePhotoZoom(event,true)">×</button>
+ <img id="member-photo-lightbox-image" src="" alt="Enlarged member photo">
+ <div id="member-photo-lightbox-caption" class="member-photo-lightbox-caption"></div>
+</div>
+<script>
+function openPhotoZoom(img){
+ const box=document.getElementById('member-photo-lightbox');
+ const big=document.getElementById('member-photo-lightbox-image');
+ const cap=document.getElementById('member-photo-lightbox-caption');
+ big.src=img.src;
+ big.alt=img.alt;
+ cap.textContent=img.alt;
+ box.classList.add('is-open');
+ box.setAttribute('aria-hidden','false');
+ document.body.classList.add('photo-zoom-open');
+}
+function closePhotoZoom(event,force){
+ const box=document.getElementById('member-photo-lightbox');
+ if(!force && event && event.target!==box) return;
+ box.classList.remove('is-open');
+ box.setAttribute('aria-hidden','true');
+ document.body.classList.remove('photo-zoom-open');
+}
+document.addEventListener('keydown',function(event){
+ if(event.key==='Escape') closePhotoZoom(null,true);
+});
+</script>

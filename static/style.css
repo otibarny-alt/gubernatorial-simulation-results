@@ -1,0 +1,1196 @@
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f4f6f8;color:#17202a}header{background:#111;color:#fff;padding:15px 20px;display:flex;justify-content:space-between;flex-wrap:wrap}header a{color:#fff}.demo{background:#fff3cd;padding:10px 20px;font-weight:700}.wrap{max-width:1100px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}.candidate{border:2px solid #ddd;border-radius:14px;padding:12px;text-align:center}.candidate input{position:absolute;opacity:0}.candidate label{display:block;cursor:pointer}.candidate:has(input:checked){border-color:#111}.photo{width:125px;height:125px;background:#eceff2;border-radius:14px;margin:auto auto 10px;display:grid;place-items:center;font-size:44px;font-weight:700}.actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}button,.btn,input[type=text],select{padding:12px;border-radius:8px;border:1px solid #bbb;font-size:16px}.btn,button{background:#111;color:#fff;text-decoration:none}.secondary{background:#fff;color:#111}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #eee;text-align:left}.muted{color:#68707a}@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.photo{width:100px;height:100px}}
+
+/* V3 stronger selection feedback */
+.candidate{
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.candidate:has(input:checked){
+  background:#fff3cd;
+  border-color:#111;
+  box-shadow:0 10px 24px rgba(0,0,0,.16), 0 0 0 3px #111 inset;
+  transform:translateY(-6px) scale(1.025);
+}
+.candidate:has(input:checked) .photo{
+  background:#fff;
+}
+.candidate:has(input:checked)::after{
+  content:"✓ SELECTED";
+  display:inline-block;
+  margin-top:10px;
+  padding:7px 12px;
+  border-radius:999px;
+  background:#111;
+  color:#fff;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.3px;
+}
+@media (prefers-reduced-motion: reduce){
+  .candidate{transition:none}
+  .candidate:has(input:checked){transform:none}
+}
+
+.voter-confirm{
+  margin:14px 0 22px;
+  padding:16px 18px;
+  border:2px solid #111;
+  border-radius:12px;
+  background:#fff8d8;
+}
+.voter-id{
+  font-size:30px;
+  font-weight:800;
+  letter-spacing:1px;
+  margin:4px 0 6px;
+}
+
+.terminal-lock{
+  padding:16px 18px;
+  border:2px solid #111;
+  border-radius:12px;
+  background:#f7f7f7;
+  margin-bottom:18px;
+}
+.terminal-title{
+  font-size:24px;
+  font-weight:800;
+  margin:5px 0;
+}
+
+.vote-error{
+  background:#fde8e8;
+  border:2px solid #9b1c1c;
+  color:#7f1d1d;
+  padding:14px 16px;
+  border-radius:10px;
+  font-weight:700;
+  margin:14px 0;
+}
+
+.participation{margin-top:22px;padding-top:18px;border-top:2px solid #ddd}
+.participation h3{margin-bottom:12px}.participation h4{margin:18px 0 8px}
+.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px}
+.summary-box{border:1px solid #ddd;border-radius:10px;padding:12px;text-align:center;background:#f7f7f7}
+.summary-box span{display:block;font-size:.82rem;margin-bottom:6px}.summary-box strong{font-size:1.45rem}
+@media(max-width:760px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+
+.tally-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.print-tally{width:auto;padding:10px 16px;border-radius:8px;cursor:pointer}
+@page{size:A4 portrait;margin:6mm}
+@media print{
+  html,body{background:#fff!important}
+  body.printing-one header,
+  body.printing-one>.demo,
+  body.printing-one .wrap>.card:not(.print-target),
+  body.printing-one .no-print{display:none!important}
+  body.printing-one .wrap{max-width:none!important;margin:0!important;padding:0!important}
+  body.printing-one .print-target{
+    display:block!important;
+    box-shadow:none!important;
+    border:0!important;
+    margin:0!important;
+    padding:0!important;
+    width:100%!important;
+  }
+  body.printing-one .print-target h2{margin:0 0 4px!important;font-size:15pt}
+  body.printing-one table{width:100%;font-size:8pt;border-collapse:collapse;line-height:1.05}
+  body.printing-one th,body.printing-one td{padding:2px 3px!important}
+  body.printing-one .summary-grid{grid-template-columns:repeat(4,1fr)!important;gap:3px}
+  body.printing-one .summary-box{padding:3px!important;margin:2px 0!important}
+  body.printing-one .summary-box strong{font-size:11pt!important}
+  body.printing-one .summary-box span{font-size:8pt!important}
+  body.printing-one .participation{margin-top:5px;padding-top:4px}
+  body.printing-one .participation h3{font-size:11pt;margin:3px 0}
+  body.printing-one .participation h4{font-size:9pt;margin:4px 0 2px}
+}
+
+.agent-certification{margin-top:24px;padding-top:14px;border-top:2px solid #222}
+.agent-certification h3{margin:0 0 6px}
+.cert-statement{font-size:.92rem;margin:0 0 10px}
+.signature-table{width:100%;border-collapse:collapse}
+.signature-table th,.signature-table td{border:1px solid #777;padding:7px}
+.signature-space{height:32px}
+.stream-cert-details{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:14px;font-size:.95rem}
+
+@media print{
+  body.printing-one .agent-certification{
+    display:block!important;
+    margin-top:5px!important;
+    padding-top:4px!important;
+    page-break-inside:avoid;
+  }
+  body.printing-one .agent-certification h3{font-size:12pt!important;margin:3px 0!important}
+  body.printing-one .cert-statement{font-size:8.5pt!important;margin-bottom:5px!important}
+  body.printing-one .signature-table{font-size:8pt!important}
+  body.printing-one .signature-table th,
+  body.printing-one .signature-table td{padding:3px!important}
+  body.printing-one .signature-space{height:14px!important}
+  body.printing-one .stream-cert-details{font-size:8.5pt!important;margin-top:6px!important;gap:8px!important}
+}
+
+.officer-certification{margin-top:18px;padding-top:10px;border-top:1px solid #777}
+.officer-certification h4{margin:0 0 12px}
+.officer-signatures{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.officer-line{line-height:1.35;min-height:95px}
+@media(max-width:760px){.officer-signatures{grid-template-columns:1fr}}
+@media print{
+ body.printing-one .officer-certification{margin-top:8px!important;padding-top:5px!important;page-break-inside:avoid}
+ body.printing-one .officer-certification h4{font-size:10pt!important;margin:2px 0 5px!important}
+ body.printing-one .officer-signatures{grid-template-columns:1fr 1fr!important;gap:10px!important}
+ body.printing-one .officer-line{font-size:7.5pt!important;line-height:1.05!important;min-height:38px!important}
+}
+
+.clean-check{font-weight:700;border:2px solid;padding:10px;border-radius:8px}.report-page{max-width:900px;margin:20px auto;padding:20px;background:#fff}.report-page table{width:100%;border-collapse:collapse}.report-page th,.report-page td{border:1px solid #777;padding:6px}.report-page .sig{height:28px}
+@media print{@page{size:A4 portrait;margin:6mm}.no-print,header,.demo{display:none!important}.report-page{margin:0;padding:0;max-width:none}.report-page h1{font-size:15pt;margin:0 0 4px}.report-page table{font-size:7.5pt;line-height:1.05}.report-page th,.report-page td{padding:2px}.report-page .sig{height:12px}}
+
+.control-grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:14px 20px;margin:18px 0}
+.control-grid label{display:block;font-weight:700;margin-bottom:5px}
+.control-grid select{width:100%;padding:10px;border:1px solid #aaa;border-radius:6px;background:white}
+@media(max-width:760px){.control-grid{grid-template-columns:1fr}}
+
+.signature-section{margin-top:14px;break-inside:avoid;page-break-inside:avoid}
+.signature-section h3{margin:6px 0}
+.agent-sign-table{width:100%;border-collapse:collapse}
+.agent-sign-table th,.agent-sign-table td{border:1px solid #777;padding:5px}
+.closing-signatures{margin-top:26px;padding-top:16px;border-top:3px solid #222}
+@media print{
+ .signature-section{break-inside:avoid;page-break-inside:avoid}
+ .signature-section h3{font-size:10pt!important;margin:4px 0!important}
+ .agent-sign-table{font-size:7.5pt!important}
+ .agent-sign-table th,.agent-sign-table td{padding:1px 2px!important}
+ .agent-sign-table .sig{height:10px!important}
+ .closing-signatures{page-break-before:always;margin-top:0;padding-top:0;border-top:0}
+}
+
+.print-report-header{width:100%;text-align:center;margin:0 0 12px}
+.print-report-header img{display:block;width:100%;max-height:150px;object-fit:contain;margin:0 auto}
+@media screen{
+ .tally-section .print-report-header{display:none}
+}
+@media print{
+ .print-report-header{display:block!important;margin:0 0 3mm!important}
+ .print-report-header img{width:100%!important;max-height:30mm!important;object-fit:contain!important}
+}
+
+.terminal-lock-banner{border:2px solid #222;padding:12px;margin:12px 0;border-radius:8px;font-weight:600}
+
+.terminal-reset-form{margin:12px 0 18px}
+.reset-terminal-btn{padding:10px 16px;border:1px solid #333;border-radius:7px;cursor:pointer}
+.reset-blocked{margin:10px 0 16px;font-weight:600}
+
+.member-details{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:8px 20px;margin:14px 0 18px}
+.photo-verify-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:20px;margin:18px 0}
+.photo-card{border:1px solid #bbb;border-radius:10px;padding:12px;text-align:center}
+.photo-card img{display:block;width:100%;max-width:420px;height:360px;object-fit:contain;margin:auto;background:#f4f4f4}
+.photo-missing{min-height:200px;display:flex;align-items:center;justify-content:center;border:1px dashed #aaa;padding:16px}
+.identity-warning{font-weight:700;border:2px solid #222;border-radius:8px;padding:12px;margin:18px 0}
+@media(max-width:760px){.member-details,.photo-verify-grid{grid-template-columns:1fr}.photo-card img{height:300px}}
+
+.station-match{border:2px solid #198754;background:#eefaf2;padding:12px;border-radius:8px;font-weight:700;margin:16px 0}
+.station-mismatch{border:2px solid #b42318;background:#fff1f0;padding:12px;border-radius:8px;font-weight:700;margin:16px 0}
+button:disabled{opacity:.55;cursor:not-allowed}
+
+.report-generation-meta{margin:10px 0 16px;padding:10px;border:1px solid #aaa;border-radius:8px}
+.report-generation-meta h4{margin:0 0 8px}
+.report-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:6px 18px}
+@media(max-width:760px){.report-meta-grid{grid-template-columns:1fr}}
+@media print{
+ .report-generation-meta{display:block!important;margin:4mm 0 5mm!important;padding:3mm!important;border:1px solid #777!important}
+ .report-generation-meta h4{font-size:9pt!important;margin:0 0 2mm!important}
+ .report-meta-grid{grid-template-columns:1fr 1fr!important;gap:1.5mm 8mm!important;font-size:8pt!important}
+}
+
+.gps-help{font-size:.9em;margin-bottom:8px}
+
+.gps-open-status{margin:10px 0;padding:9px;border:1px solid #aaa;border-radius:6px;font-weight:600}
+
+.candidate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin-top:16px}
+.candidate-profile-card{border:2px solid #ddd;border-radius:12px;background:#fff;overflow:hidden}
+.candidate-profile-card input{position:absolute;opacity:0;pointer-events:none}
+.candidate-profile-card label{display:flex;gap:14px;padding:14px;cursor:pointer;height:100%;margin:0}
+.candidate-profile-card:has(input:checked){border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.candidate-profile-card:has(input:checked) label{background:#f0f6ff}
+.candidate-photo-wrap{width:110px;min-width:110px;height:138px;border-radius:8px;overflow:hidden;background:#eee;border:1px solid #ccc}
+.candidate-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.candidate-no-photo{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;color:#666;font-size:13px}
+.candidate-profile-text{min-width:0}
+.candidate-name{font-weight:800;font-size:20px;line-height:1.15;margin-bottom:6px}
+.candidate-meta{font-size:13px;color:#666;margin-bottom:8px}
+.candidate-bio{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:600px){.candidate-grid{grid-template-columns:1fr}.candidate-photo-wrap{width:95px;min-width:95px;height:119px}.candidate-name{font-size:18px}}
+
+.review-help{margin:18px 0;padding:14px 16px;border:2px solid #222;border-radius:10px;background:#fff8d8;font-size:18px}
+.review-candidate-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:18px;margin:20px 0 26px}
+.review-candidate-card{border:2px solid #d5d5d5;border-radius:14px;background:#fff;padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.review-election{font-size:22px;font-weight:900;margin-bottom:10px;width:100%;padding-bottom:8px;border-bottom:1px solid #ddd}
+.review-photo{width:180px;height:225px;border-radius:10px;overflow:hidden;background:#eee;border:2px solid #bbb;margin:4px auto 12px}
+.review-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.review-no-photo{height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-weight:700}
+.review-candidate-name{font-size:20px;font-weight:900;line-height:1.2;min-height:48px;display:flex;align-items:center;justify-content:center}
+.review-candidate-id{font-size:14px;color:#666;margin:7px 0 12px}
+.review-edit{margin-top:auto;width:100%;box-sizing:border-box}
+@media(max-width:900px){.review-candidate-grid{grid-template-columns:repeat(2,minmax(210px,1fr))}}
+@media(max-width:560px){.review-candidate-grid{grid-template-columns:1fr}.review-photo{width:200px;height:250px}.review-election{font-size:24px}.review-candidate-name{font-size:22px}}
+@media print{.review-edit,.actions{display:none!important}}
+
+/* V22.13 deliberate skip option */
+.candidate-profile-card label{flex-direction:column;align-items:center;text-align:center}
+.candidate-photo-wrap{width:170px;min-width:170px;height:213px}
+.candidate-name{font-size:22px;font-weight:900;text-align:center;margin-top:8px}
+.skip-zone{margin-top:24px;border:4px solid #b00020;border-radius:14px;background:#fff0f1;padding:18px;text-align:center}
+.skip-warning{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.skip-warning strong{font-size:20px;color:#8a0018}
+.skip-warning span{font-size:16px;font-weight:700}
+.skip-button{width:100%;background:#b00020!important;color:#fff!important;border:4px solid #64000f!important;border-radius:10px!important;padding:18px 20px!important;font-size:24px!important;font-weight:900!important;letter-spacing:.4px}
+.skip-button:hover{filter:brightness(.92)}
+.skip-previous{border:3px solid #b00020;background:#fff0f1;color:#8a0018;font-weight:900;padding:12px;border-radius:10px;margin-bottom:14px}
+.review-skipped-card{border:4px solid #b00020!important;background:#fff0f1!important}
+.review-skip-symbol{font-size:30px;font-weight:1000;color:#b00020;padding:35px 8px 10px}
+.review-skip-text{font-size:18px;font-weight:800;color:#7a0015;min-height:80px}
+.skip-summary{border:2px solid #b00020!important}
+.skip-summary strong{color:#b00020}
+.skip-summary small{display:block;margin-top:4px;font-weight:800}
+@media(max-width:600px){
+ .candidate-photo-wrap{width:150px;min-width:150px;height:188px}
+ .skip-button{font-size:20px!important}
+}
+
+
+/* V22.14 — softer skip section + pointer cursors */
+.skip-zone{
+  margin-top:20px;
+  border:1px solid #d9a5aa !important;
+  border-radius:10px !important;
+  background:#fff8f8 !important;
+  padding:12px 14px !important;
+  text-align:center;
+}
+
+.skip-warning{
+  gap:3px !important;
+  margin-bottom:10px !important;
+}
+
+.skip-warning strong{
+  font-size:16px !important;
+  color:#7d1a24 !important;
+}
+
+.skip-warning span{
+  font-size:14px !important;
+  font-weight:600 !important;
+  color:#555 !important;
+}
+
+.skip-button{
+  width:auto !important;
+  min-width:320px;
+  max-width:100%;
+  background:#8f1f2d !important;
+  color:#fff !important;
+  border:1px solid #741824 !important;
+  border-radius:8px !important;
+  padding:11px 18px !important;
+  font-size:17px !important;
+  font-weight:800 !important;
+  letter-spacing:0 !important;
+  cursor:pointer !important;
+}
+
+.skip-button:hover{
+  filter:brightness(.95);
+}
+
+button,
+.btn,
+input[type="submit"],
+input[type="button"]{
+  cursor:pointer !important;
+}
+
+.actions button{
+  cursor:pointer !important;
+}
+
+@media(max-width:600px){
+  .skip-button{
+    min-width:0;
+    width:100% !important;
+    font-size:16px !important;
+  }
+}
+
+/* V22.18 — final review save emphasis */
+.final-save-actions{
+  justify-content:flex-end !important;
+  margin-top:26px !important;
+}
+.final-save-button{
+  min-width:390px;
+  max-width:100%;
+  padding:20px 30px !important;
+  border:4px solid #000 !important;
+  border-radius:12px !important;
+  font-size:24px !important;
+  font-weight:900 !important;
+  box-shadow:0 5px 0 #555;
+  cursor:pointer !important;
+}
+.final-save-button:hover{filter:brightness(1.12)}
+.final-save-button:active{transform:translateY(3px);box-shadow:0 2px 0 #555}
+.final-save-note{
+  margin-top:18px;
+  padding:14px 16px;
+  border:2px solid #111;
+  border-radius:10px;
+  background:#fff8d8;
+  font-size:17px;
+  font-weight:800;
+  text-align:center;
+}
+@media(max-width:600px){.final-save-button{min-width:0;width:100%;font-size:20px!important}}
+
+/* V22.19 — centered final save + clear selected/clicked button states */
+.final-save-actions{
+  justify-content:center !important;
+  align-items:center !important;
+}
+.final-save-button{
+  background:#111 !important;
+  color:#fff !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  transition:background-color .12s ease,border-color .12s ease,color .12s ease,transform .08s ease,box-shadow .12s ease;
+}
+.final-save-button:hover{background:#2b2b2b !important;filter:none !important}
+.final-save-button:focus-visible,
+.final-save-button.button-selected,
+.final-save-button:active{
+  background:#198754 !important;
+  border-color:#0f5132 !important;
+  color:#fff !important;
+  box-shadow:0 4px 0 #0f5132 !important;
+}
+.review-edit{
+  transition:background-color .12s ease,border-color .12s ease,color .12s ease;
+}
+.review-edit:hover{background:#303030 !important}
+.review-edit:focus-visible,
+.review-edit.button-selected,
+.review-edit:active{
+  background:#0d6efd !important;
+  border-color:#084298 !important;
+  color:#fff !important;
+}
+.actions button:not(.skip-button):not(.final-save-button):focus-visible,
+.actions button:not(.skip-button):not(.final-save-button).button-selected,
+.actions button:not(.skip-button):not(.final-save-button):active{
+  background:#198754 !important;
+  border-color:#0f5132 !important;
+  color:#fff !important;
+}
+.skip-button:focus-visible,
+.skip-button.button-selected,
+.skip-button:active{
+  background:#b26a00 !important;
+  border-color:#7a4900 !important;
+  color:#fff !important;
+}
+
+/* V22.20 — high-visibility selected candidate + centered ballot save */
+.candidate-profile-card:has(input:checked){
+  border-color:#b00000 !important;
+  background:#e60000 !important;
+  box-shadow:0 0 0 4px #b00000 !important;
+}
+.candidate-profile-card:has(input:checked) label{
+  background:#e60000 !important;
+  color:#fff !important;
+}
+.candidate-profile-card:has(input:checked) .candidate-name{
+  color:#fff !important;
+  text-shadow:0 1px 1px rgba(0,0,0,.35);
+}
+.ballot-save-actions{
+  justify-content:center !important;
+  align-items:center !important;
+}
+.ballot-save-button{
+  min-width:420px;
+  padding:18px 34px !important;
+  border:4px solid #000 !important;
+  border-radius:12px !important;
+  font-size:22px !important;
+  font-weight:900 !important;
+  background:#111 !important;
+  color:#fff !important;
+  box-shadow:0 5px 0 #555;
+  cursor:pointer !important;
+  transition:background-color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;
+}
+.ballot-save-button:hover{background:#2b2b2b !important}
+.ballot-save-button:focus-visible,
+.ballot-save-button.button-selected,
+.ballot-save-button:active{
+  background:#198754 !important;
+  border-color:#0f5132 !important;
+  box-shadow:0 4px 0 #0f5132 !important;
+}
+@media(max-width:600px){.ballot-save-button{min-width:0;width:100%;font-size:19px!important}}
+
+
+/* V22.21: embedded ODM report header on voter verification start screen */
+.odm-screen-header {
+  width: 100%;
+  text-align: center;
+  margin: 0 auto 12px auto;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e2e2;
+}
+.odm-screen-header-image {
+  display: block;
+  width: 100%;
+  max-width: 1500px;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+@media (max-width: 700px) {
+  .odm-screen-header { margin-bottom: 10px; padding-bottom: 6px; }
+  .odm-screen-header-image { width: 100%; }
+}
+
+/* V22.23: consistent ODM project identity header on every application screen */
+.project-screen-brand {
+  margin-top: 0;
+}
+@media print {
+  .project-screen-brand { display:none !important; }
+}
+
+
+/* V22.24: verification title ribbon directly below ODM project header */
+.odm-verification-ribbon {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 18px 0;
+  padding: 10px 16px;
+  text-align: center;
+  background: #f58220;
+  color: #111;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 800;
+  border-radius: 4px;
+}
+@media (max-width: 700px) {
+  .odm-verification-ribbon {
+    font-size: 22px;
+    padding: 9px 10px;
+    margin-bottom: 14px;
+  }
+}
+
+
+/* V22.25 — stream-opening action directly below verification ribbon */
+.open-stream-action-row{
+  display:flex;
+  justify-content:center;
+  margin:12px 0 18px;
+}
+
+.open-stream-action-btn{
+  display:inline-block;
+  background:#111;
+  color:#fff !important;
+  text-decoration:none !important;
+  font-weight:800;
+  font-size:18px;
+  line-height:1.2;
+  padding:13px 22px;
+  border:3px solid #f58220;
+  border-radius:9px;
+  box-shadow:0 3px 0 #b95400;
+  cursor:pointer;
+  transition:background .12s ease, transform .08s ease, box-shadow .08s ease;
+}
+
+.open-stream-action-btn:hover{
+  background:#f58220;
+  color:#111 !important;
+}
+
+.open-stream-action-btn:focus{
+  outline:4px solid rgba(245,130,32,.35);
+  outline-offset:3px;
+}
+
+.open-stream-action-btn:active{
+  background:#d96f13;
+  color:#fff !important;
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #8f4300;
+}
+
+@media(max-width:600px){
+  .open-stream-action-btn{
+    width:100%;
+    text-align:center;
+    font-size:16px;
+    padding:12px 14px;
+  }
+}
+
+
+/* V22.26 — Pre-Opening Control ribbon */
+.pre-opening-ribbon{
+  background:#f58220;
+  color:#111;
+  text-align:center;
+  font-size:30px;
+  font-weight:900;
+  line-height:1.2;
+  padding:14px 18px;
+  margin:0 0 18px;
+  border-radius:8px;
+  letter-spacing:.2px;
+}
+
+@media(max-width:600px){
+  .pre-opening-ribbon{
+    font-size:22px;
+    padding:12px 14px;
+  }
+}
+
+
+/* V22.27 — centered Reset Terminal button with click feedback */
+.reset-terminal-form{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  margin:16px 0;
+}
+
+.reset-terminal-button{
+  display:inline-block;
+  margin:0 auto;
+  cursor:pointer;
+  transition:background-color .12s ease, color .12s ease,
+             transform .08s ease, box-shadow .08s ease;
+}
+
+.reset-terminal-button:active{
+  background:#f58220 !important;
+  color:#111 !important;
+  transform:translateY(2px);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.28);
+}
+
+.reset-terminal-button:focus{
+  outline:3px solid #f58220;
+  outline-offset:3px;
+}
+
+
+/* V22.28 — corrected selectors for the ACTUAL reset form/button */
+.terminal-reset-form{
+  width:100% !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  margin:18px 0 !important;
+  text-align:center !important;
+}
+
+.terminal-reset-form .reset-terminal-btn,
+.terminal-reset-form .reset-terminal-button{
+  display:inline-block !important;
+  margin:0 auto !important;
+  min-width:330px;
+  background:#111 !important;
+  color:#fff !important;
+  border:2px solid #111 !important;
+  border-radius:8px !important;
+  padding:13px 22px !important;
+  font-size:18px !important;
+  font-weight:700 !important;
+  cursor:pointer !important;
+  transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease !important;
+}
+
+.terminal-reset-form .reset-terminal-btn:hover,
+.terminal-reset-form .reset-terminal-button:hover{
+  background:#333 !important;
+}
+
+.terminal-reset-form .reset-terminal-btn:active,
+.terminal-reset-form .reset-terminal-button:active,
+.terminal-reset-form .reset-terminal-btn.reset-clicked,
+.terminal-reset-form .reset-terminal-button.reset-clicked{
+  background:#f58220 !important;
+  color:#111 !important;
+  border-color:#b95400 !important;
+  transform:translateY(2px);
+}
+
+.terminal-reset-form .reset-terminal-btn:focus,
+.terminal-reset-form .reset-terminal-button:focus{
+  outline:4px solid rgba(245,130,32,.35) !important;
+  outline-offset:3px;
+}
+
+@media(max-width:600px){
+  .terminal-reset-form .reset-terminal-btn,
+  .terminal-reset-form .reset-terminal-button{
+    min-width:0;
+    width:100%;
+  }
+}
+
+
+/* V22.31 — post-reset new-stream state only */
+.training-ballot-after-reset{
+  text-decoration:none !important;
+  text-align:center;
+  box-sizing:border-box;
+}
+
+
+/* V22.32 — central stream assignment required before voter entry */
+.unassigned-station-panel{
+  border:3px solid #b00020;
+  background:#fff4f5;
+  border-radius:12px;
+  padding:22px 24px;
+  margin:16px 0 22px;
+  text-align:center;
+}
+
+.unassigned-title{
+  font-size:25px;
+  font-weight:900;
+  color:#8c0018;
+  margin-bottom:8px;
+}
+
+.unassigned-help{
+  max-width:920px;
+  margin:0 auto;
+  font-size:17px;
+  font-weight:700;
+  line-height:1.4;
+  color:#555;
+}
+
+.blocked-voter-panel input[disabled],
+.blocked-voter-panel button[disabled]{
+  opacity:.45;
+  cursor:not-allowed !important;
+}
+
+.voter-entry-blocked{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#fff4f5;
+  border:1px solid #d8a0a7;
+  color:#8c0018;
+  font-weight:800;
+}
+
+.locked-station-panel{
+  border:3px solid #111;
+  border-radius:12px;
+  padding:22px 26px;
+  margin:16px 0 22px;
+}
+
+.locked-station-name{
+  font-size:26px;
+  font-weight:900;
+  margin:8px 0;
+}
+
+.locked-station-hierarchy{
+  font-size:18px;
+  color:#666;
+  margin-bottom:14px;
+}
+
+.stream-lock-status{
+  display:inline-block;
+  padding:10px 14px;
+  border:1px solid #aaa;
+  border-radius:8px;
+  background:#fff;
+  font-weight:700;
+}
+
+@media(max-width:600px){
+  .unassigned-title{font-size:20px}
+  .unassigned-help{font-size:15px}
+  .locked-station-name{font-size:20px}
+}
+
+
+/* V22.33 — centered, pronounced pre-opening action */
+.open-stream-submit-row{display:flex;justify-content:center;align-items:center;margin:24px 0 8px;}
+#open_stream_btn.open-stream-submit-btn{display:inline-block;min-width:520px;max-width:95%;padding:17px 28px;font-size:19px;font-weight:800;border:3px solid #ff7f0e;border-radius:11px;background:#111;color:#fff;box-shadow:0 4px 0 #b95600;transition:background .12s ease,color .12s ease,transform .08s ease,box-shadow .08s ease;}
+#open_stream_btn.open-stream-submit-btn:hover{background:#292929;}
+#open_stream_btn.open-stream-submit-btn:active,#open_stream_btn.open-stream-submit-btn.selected{background:#ff7f0e;color:#111;transform:translateY(3px);box-shadow:0 1px 0 #9c4b00;}
+#open_stream_btn.open-stream-submit-btn:disabled{opacity:1;cursor:wait;}
+@media(max-width:650px){#open_stream_btn.open-stream-submit-btn{min-width:0;width:100%;font-size:16px;}}
+
+
+/* V22.36 — centered, large, pronounced voter ID entry */
+.next-voter-title{
+  text-align:center !important;
+  margin:30px auto 18px !important;
+  font-size:30px !important;
+  font-weight:800 !important;
+}
+
+.voter-id-input{
+  display:block !important;
+  width:min(650px, 90%) !important;
+  height:72px !important;
+  margin:0 auto 28px !important;
+  padding:14px 22px !important;
+  box-sizing:border-box !important;
+  border:3px solid #111 !important;
+  border-radius:10px !important;
+  background:#fff !important;
+  font-size:28px !important;
+  font-weight:700 !important;
+  text-align:center !important;
+  box-shadow:0 4px 10px rgba(0,0,0,.15) !important;
+}
+
+.voter-id-input:focus{
+  outline:4px solid #ff821c !important;
+  outline-offset:3px !important;
+}
+
+.voter-id-input::placeholder{
+  text-align:center !important;
+  font-weight:600 !important;
+}
+
+
+/* V22.38 — strict official 6 PM closure */
+.closing-time-lock{
+  margin:18px 0;
+  padding:16px 18px;
+  text-align:center;
+  border:2px solid #d28a00;
+  border-radius:10px;
+  background:#fff8df;
+  font-size:17px;
+  line-height:1.4;
+}
+
+.close-stream-form{
+  display:flex;
+  justify-content:center;
+  margin:18px 0;
+}
+
+.close-stream-btn{
+  background:#b00020 !important;
+  color:#fff !important;
+  border:2px solid #700014 !important;
+  border-radius:9px !important;
+  padding:14px 22px !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+}
+
+.close-stream-btn:active{
+  background:#f58220 !important;
+  color:#111 !important;
+}
+
+.stream-permanently-closed{
+  margin:18px 0;
+  padding:18px;
+  text-align:center;
+  border:3px solid #8c0018;
+  border-radius:10px;
+  background:#fff0f2;
+  color:#8c0018;
+  font-size:18px;
+  font-weight:800;
+}
+
+
+/* V22.39 — pronounced centered ballot category ribbons */
+.ballot-vote-title{
+  display:block !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  margin:0 auto 24px !important;
+  padding:18px 22px !important;
+  text-align:center !important;
+  font-size:34px !important;
+  line-height:1.15 !important;
+  font-weight:900 !important;
+  letter-spacing:.4px !important;
+  color:#fff !important;
+  background:#e00000 !important;
+  border:3px solid #9f001b !important;
+  border-radius:10px !important;
+  box-shadow:0 5px 0 #790015, 0 8px 16px rgba(0,0,0,.18) !important;
+  text-shadow:0 2px 2px rgba(0,0,0,.35) !important;
+}
+.ballot-vote-title-governor{background:#f58220 !important;color:#111 !important;border-color:#b55300 !important;box-shadow:0 5px 0 #8f4100,0 8px 16px rgba(0,0,0,.18) !important;text-shadow:none !important;}
+.ballot-vote-title-senator{background:#111 !important;color:#fff !important;border-color:#000 !important;box-shadow:0 5px 0 #555,0 8px 16px rgba(0,0,0,.18) !important;}
+.ballot-vote-title-woman_rep{background:#ffbf00 !important;color:#111 !important;border-color:#b77700 !important;box-shadow:0 5px 0 #8e5d00,0 8px 16px rgba(0,0,0,.18) !important;text-shadow:none !important;}
+.ballot-vote-title-mna{background:#0057b8 !important;color:#fff !important;border-color:#003b7c !important;box-shadow:0 5px 0 #002b5b,0 8px 16px rgba(0,0,0,.18) !important;}
+.ballot-vote-title-mca{background:#008b45 !important;color:#fff !important;border-color:#005b2e !important;box-shadow:0 5px 0 #004323,0 8px 16px rgba(0,0,0,.18) !important;}
+@media(max-width:700px){.ballot-vote-title{font-size:27px !important;padding:15px 12px !important;}}
+
+
+/* V22.40 — tally access only after formal stream closure */
+.tallies-locked-ribbon{
+  margin:0 0 20px;
+  padding:15px 18px;
+  border-radius:9px;
+  background:#b00020;
+  color:#fff;
+  text-align:center;
+  font-size:30px;
+  font-weight:900;
+}
+
+.tallies-locked-panel{
+  border:3px solid #b00020;
+  background:#fff2f4;
+  color:#7d0016;
+  border-radius:12px;
+  padding:24px;
+  text-align:center;
+  font-size:18px;
+  line-height:1.45;
+}
+
+.tallies-locked-title{
+  font-size:24px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+
+.tallies-return{
+  display:flex;
+  justify-content:center;
+  margin-top:20px;
+}
+
+.tally-disabled-btn{
+  background:#999 !important;
+  color:#fff !important;
+  border:2px solid #777 !important;
+  border-radius:8px !important;
+  padding:14px 20px !important;
+  font-size:17px !important;
+  font-weight:800 !important;
+  cursor:not-allowed !important;
+  opacity:.75;
+}
+
+.header-tally-locked{
+  color:#ddd;
+  text-decoration:none;
+  cursor:not-allowed;
+}
+
+@media(max-width:600px){
+  .tallies-locked-ribbon{font-size:22px}
+  .tallies-locked-title{font-size:20px}
+}
+
+
+/* V22.41 — closing control is always visible while stream is open */
+.close-control-panel{
+  margin:18px 0;
+}
+
+.close-stream-form{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:16px 0 10px;
+}
+
+.close-stream-btn{
+  min-width:390px;
+  background:#b00020 !important;
+  color:#fff !important;
+  border:3px solid #700014 !important;
+  border-radius:10px !important;
+  padding:15px 24px !important;
+  font-size:19px !important;
+  font-weight:900 !important;
+  cursor:pointer !important;
+  box-shadow:0 3px 0 #620011;
+}
+
+.close-stream-btn:active{
+  background:#f58220 !important;
+  color:#111 !important;
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #8b4300;
+}
+
+.close-stream-btn-disabled{
+  background:#8f8f8f !important;
+  border-color:#6f6f6f !important;
+  color:#eee !important;
+  cursor:not-allowed !important;
+  box-shadow:none !important;
+  opacity:.8;
+}
+
+.close-help,
+.closing-time-lock{
+  max-width:900px;
+  margin:0 auto;
+  text-align:center;
+}
+
+.active-close-help{
+  color:#7b0015;
+  font-weight:700;
+}
+
+@media(max-width:600px){
+  .close-stream-btn{
+    min-width:0;
+    width:100%;
+    font-size:17px !important;
+  }
+}
+
+
+/* V22.42 — show selected polling-station stream */
+.assigned-stream-name{
+  display:inline-block;
+  margin-left:8px;
+  font-weight:900;
+  color:#111;
+}
+
+
+/* V22.43 — tally dashboard becomes available immediately after formal closing */
+.closed-tally-action{
+  display:flex;
+  justify-content:center;
+  margin:20px 0 10px;
+}
+
+.closed-tally-btn{
+  display:inline-block;
+  min-width:420px;
+  box-sizing:border-box;
+  text-align:center;
+  background:#111;
+  color:#fff !important;
+  text-decoration:none !important;
+  border:3px solid #f58220;
+  border-radius:10px;
+  padding:15px 24px;
+  font-size:19px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 3px 0 #b95400;
+}
+
+.closed-tally-btn:hover{
+  background:#f58220;
+  color:#111 !important;
+}
+
+.closed-tally-btn:active{
+  background:#198754;
+  color:#fff !important;
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #0c4c2e;
+}
+
+@media(max-width:600px){
+  .closed-tally-btn{
+    min-width:0;
+    width:100%;
+    font-size:17px;
+  }
+}
+
+
+/* V22.45 — candidate images on final tally reports */
+.candidate-tally-table .tally-photo-cell{
+  width:130px;
+  text-align:center;
+  vertical-align:middle;
+}
+
+.tally-candidate-photo{
+  width:105px;
+  height:125px;
+  object-fit:cover;
+  object-position:center top;
+  border:2px solid #999;
+  border-radius:8px;
+  background:#fff;
+  display:block;
+  margin:6px auto;
+}
+
+.tally-photo-placeholder{
+  width:105px;
+  height:125px;
+  margin:6px auto;
+  border:2px dashed #bbb;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:#777;
+  background:#fafafa;
+}
+
+.cert-candidate{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.cert-candidate-photo{
+  width:58px;
+  height:68px;
+  object-fit:cover;
+  object-position:center top;
+  border:1px solid #999;
+  border-radius:5px;
+  flex:0 0 auto;
+}
+
+@media print{
+  .tally-candidate-photo{
+    width:82px;
+    height:98px;
+  }
+  .tally-photo-placeholder{
+    width:82px;
+    height:98px;
+  }
+  .cert-candidate-photo{
+    width:48px;
+    height:56px;
+  }
+}
+
+@media(max-width:700px){
+  .candidate-tally-table .tally-photo-cell{width:95px}
+  .tally-candidate-photo,
+  .tally-photo-placeholder{
+    width:78px;
+    height:94px;
+  }
+}
+
+/* V22.46 — per-report email control */
+.tally-actions{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.email-tally{background:#f58220;color:#111;border:2px solid #111;border-radius:10px;padding:14px 22px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 2px 0 #8a4300}
+.email-tally:hover{filter:brightness(.96)}
+.email-tally:disabled{opacity:.55;cursor:wait}
+@media(max-width:700px){.tally-actions{width:100%;justify-content:center}.email-tally,.print-tally{width:100%}}
+
+
+/* V22.48 — click-to-zoom ODM membership ID/passport photographs */
+.zoomable-member-photo{
+  cursor:zoom-in !important;
+  transition:transform .16s ease, box-shadow .16s ease;
+}
+.zoomable-member-photo:hover,
+.zoomable-member-photo:focus{
+  transform:scale(1.015);
+  box-shadow:0 0 0 4px #f58220, 0 8px 22px rgba(0,0,0,.18);
+  outline:none;
+}
+.member-photo-lightbox{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  padding:30px;
+  box-sizing:border-box;
+  background:rgba(0,0,0,.88);
+  cursor:zoom-out;
+}
+.member-photo-lightbox.is-open{display:flex;}
+.member-photo-lightbox img{
+  max-width:min(94vw,1200px);
+  max-height:82vh;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  border:5px solid #fff;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 12px 45px rgba(0,0,0,.55);
+  cursor:default;
+}
+.member-photo-lightbox-close{
+  position:fixed;
+  top:18px;
+  right:24px;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  border:2px solid #fff;
+  background:#f58220;
+  color:#111;
+  font-size:36px;
+  line-height:44px;
+  font-weight:900;
+  cursor:pointer;
+}
+.member-photo-lightbox-caption{
+  margin-top:14px;
+  color:#fff;
+  font-size:20px;
+  font-weight:800;
+}
+body.photo-zoom-open{overflow:hidden;}
+
+/* V22.52 central PDF repository */
+.repository-ribbon{background:#f58220;color:#111;text-align:center;font-weight:900;font-size:26px;padding:13px;border-radius:8px;margin:0 0 18px}.repository-group{background:#fff;border:1px solid #ccc;border-radius:10px;padding:16px;margin:18px 0}.repository-group h2{margin:0;color:#111}.repo-count{font-weight:700;color:#555;margin:5px 0 12px}.table-scroll{overflow-x:auto}.repository-table{min-width:1050px}.repo-btn{display:inline-block;background:#111;color:#fff!important;text-decoration:none;padding:7px 10px;border-radius:6px;font-weight:800;margin:2px}.repo-btn.download{background:#f58220;color:#111!important}.repo-empty{padding:14px;background:#f5f5f5;border-radius:7px;color:#666}
+
+/* V22.55 — fast repository index, category pages, filters and pagination */
+.repo-total{background:#fff;border:1px solid #ccc;border-radius:10px;padding:14px 18px;margin:12px 0 18px;font-size:20px}
+.repo-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.repo-category-card{display:block;background:#fff;border:1px solid #c9c9c9;border-radius:12px;padding:20px;text-decoration:none;color:#111;box-shadow:0 2px 7px rgba(0,0,0,.06)}
+.repo-category-card:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(0,0,0,.11)}
+.repo-category-title{font-size:25px;font-weight:900}.repo-category-count{font-size:17px;font-weight:700;color:#555;margin:7px 0 16px}.repo-open-btn{display:inline-block;background:#111;color:#fff;padding:10px 18px;border-radius:8px;font-weight:900}.repo-category-card:hover .repo-open-btn{background:#f58220;color:#111}
+.repo-filters{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;background:#fff;border:1px solid #ccc;border-radius:10px;padding:14px;margin-bottom:14px}.repo-filters label{font-weight:800}.repo-filters select{width:100%;margin-top:5px;padding:9px;border:1px solid #999;border-radius:6px;background:#fff}.repo-clear{align-self:end;text-align:center;background:#111;color:#fff!important;text-decoration:none;padding:10px;border-radius:7px;font-weight:800}.repo-category-summary{font-size:18px;margin:10px 0 14px}.repo-pagination{display:flex;justify-content:center;align-items:center;gap:18px;margin:18px 0}.repo-pagination a{background:#111;color:#fff!important;text-decoration:none;padding:9px 16px;border-radius:7px;font-weight:800}.repo-pagination span{font-weight:800}
+@media(max-width:800px){.repo-card-grid{grid-template-columns:1fr}.repo-filters{grid-template-columns:1fr}}
+
+/* V22.67 repository delete control */
+.repo-delete-form{display:inline;margin:0;padding:0}.repo-btn.delete{background:#a40000;color:#fff!important;border:0;cursor:pointer;font:inherit}.repo-btn.delete:hover{background:#7d0000}
+
+/* V22.69 repository admin controls */
+.repo-admin-link{background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;padding:0;margin-left:12px}
+.repo-admin-status{font-weight:700;margin-left:12px}
+
+/* V22.75 admin-only closed-stream reopen controls */
+.admin-reopen-panel{margin:18px 0;padding:16px;border:2px solid #d97706;border-radius:12px;background:#fff8eb;text-align:center}
+.admin-reopen-btn{display:inline-block;background:#111;color:#fff!important;border:2px solid #f58220;border-radius:9px;padding:12px 20px;font-weight:800;text-decoration:none;cursor:pointer;font-size:1rem}
+.admin-reopen-btn:hover{background:#2a2a2a}
+.admin-reopen-help{margin-top:10px;color:#7c2d12;font-size:.95rem}
+.admin-reopen-success{margin:14px 0;padding:14px 16px;border:2px solid #15803d;border-radius:10px;background:#f0fdf4;color:#14532d;font-weight:800}

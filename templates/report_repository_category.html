@@ -1,0 +1,22 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content="width=device-width,initial-scale=1">
+<header><b>Central PDF Report Repository</b><a href=/report-repository>All Categories</a>{% if is_admin %}<span class="repo-admin-status">Admin</span><form method="post" action="{{ url_for('repository_admin_logout') }}" style="display:inline"><button type="submit" class="repo-admin-link">Admin Logout</button></form>{% else %}<a href="{{ url_for('repository_admin_login', next=request.full_path) }}">Admin Login</a>{% endif %}</header>
+<div class=demo>TRAINING / SIMULATION ONLY — central archive of formally closed stream reports.</div>
+<div class=wrap><div class="odm-screen-header project-screen-brand"><img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image"></div>
+<div class="repository-ribbon">{{title}}</div>
+<form class="repo-filters" method=get>
+<label>County<select name=county onchange="this.form.submit()"><option value="">All Counties</option>{% for v in counties %}<option value="{{v}}" {% if filters.county==v %}selected{% endif %}>{{v|replace('_',' ')|title}}</option>{% endfor %}</select></label>
+<label>Constituency<select name=constituency onchange="this.form.submit()" {% if not filters.county %}disabled{% endif %}><option value="">All Constituencies</option>{% for v in constituencies %}<option value="{{v}}" {% if filters.constituency==v %}selected{% endif %}>{{v|replace('_',' ')|title}}</option>{% endfor %}</select></label>
+<label>Ward<select name=ward onchange="this.form.submit()" {% if not filters.constituency %}disabled{% endif %}><option value="">All Wards</option>{% for v in wards %}<option value="{{v}}" {% if filters.ward==v %}selected{% endif %}>{{v|replace('_',' ')|title}}</option>{% endfor %}</select></label>
+<label>Polling Station<select name=poll_station onchange="this.form.submit()" {% if not filters.ward %}disabled{% endif %}><option value="">All Polling Stations</option>{% for v in stations %}<option value="{{v}}" {% if filters.poll_station==v %}selected{% endif %}>{{v|replace('_',' ')|title}}</option>{% endfor %}</select></label>
+<label>Stream<select name=stream onchange="this.form.submit()" {% if not filters.poll_station %}disabled{% endif %}><option value="">All Streams</option>{% for v in streams %}<option value="{{v}}" {% if filters.stream==v %}selected{% endif %}>{{v|replace('_',' ')|title}}</option>{% endfor %}</select></label>
+<a class="repo-clear" href="/report-repository/{{election}}">Clear Filters</a>
+</form>
+<div class="repo-category-summary"><strong>{{total}}</strong> matching PDF report(s) · showing up to {{per_page}} per page</div>
+{% if rows %}<div class=table-scroll><table class=repository-table><tr><th>County</th><th>Constituency</th><th>Ward</th><th>Polling Station</th><th>Stream</th><th>Closed</th><th>Deposited</th><th>PDF</th></tr>
+{% for r in rows %}<tr><td>{{r.county|replace('_',' ')|title}}</td><td>{{r.constituency|replace('_',' ')|title}}</td><td>{{r.ward|replace('_',' ')|title}}</td><td>{{r.poll_station|replace('_',' ')|title}}</td><td>{{r.stream|replace('_',' ')|title}}</td><td>{{r.closed_at}}</td><td>{{r.deposited_at}}</td><td><a class=repo-btn target=_blank href="/report-repository/pdf/{{r.id}}">View</a> <a class="repo-btn download" href="/report-repository/download/{{r.id}}">Download</a> {% if is_admin %}<form class="repo-delete-form" method="post" action="/report-repository/delete/{{r.id}}" onsubmit="return confirm('Delete this PDF report permanently from the central repository? This cannot be undone.');"><button class="repo-btn delete" type="submit">Delete</button></form>{% endif %}</td></tr>{% endfor %}</table></div>
+{% else %}<div class=repo-empty>No reports match the selected filters.</div>{% endif %}
+{% if pages>1 %}<div class="repo-pagination">
+{% set qs='county='+filters.county|urlencode+'&constituency='+filters.constituency|urlencode+'&ward='+filters.ward|urlencode+'&poll_station='+filters.poll_station|urlencode+'&stream='+filters.stream|urlencode %}
+{% if page>1 %}<a href="?{{qs}}&page={{page-1}}">Previous</a>{% endif %}<span>Page {{page}} of {{pages}}</span>{% if page<pages %}<a href="?{{qs}}&page={{page+1}}">Next</a>{% endif %}
+</div>{% endif %}
+</div>

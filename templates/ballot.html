@@ -1,0 +1,86 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content='width=device-width,initial-scale=1'>
+<header><b>{{e.title}} — Training Ballot</b><span>Ballot {{step+1}} of {{total}}</span></header>
+<div class=demo>TRAINING / SIMULATION ONLY — not an official ballot.</div>
+<div class=wrap>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+<div class=card>
+{% set vote_titles = {
+  'president': 'President Vote',
+  'governor': 'Governor Vote',
+  'senator': 'Senator Vote',
+  'woman_rep': 'Women Rep Vote',
+  'mna': 'MP Vote',
+  'mca': 'MCA Vote'
+} %}
+<h2 class="ballot-vote-title ballot-vote-title-{{e.key}}">{{ vote_titles.get(e.key, e.title ~ ' Vote') }}</h2>
+{% if error %}<div class=vote-error>{{error}}</div>{% endif %}
+{% if previously_skipped %}<div class="skip-previous">You previously chose to SKIP this category. You may select a candidate now or skip again.</div>{% endif %}
+{% if e.candidates %}
+<div id=selection_status class=muted aria-live=polite>Select a candidate, or deliberately skip this category.</div>
+<form method=post id="ballotForm">
+<div class="candidate-grid">
+{% for c in e.candidates %}
+<div class="candidate-profile-card">
+ <input id="c{{loop.index}}" type=radio name=candidate value="{{c.candidate_id}}" {% if selected==c.candidate_id %}checked{% endif %}>
+ <label for="c{{loop.index}}">
+  <div class="candidate-photo-wrap">
+   {% if c.photo_url %}<img src="{{c.photo_url}}" alt="{{c.name}}">{% else %}<div class="candidate-no-photo">No photo</div>{% endif %}
+  </div>
+  <div class="candidate-name">{{c.name}}</div>
+ </label>
+</div>
+{% endfor %}
+</div>
+
+<div class="skip-zone">
+ <div class="skip-warning">
+  <strong>DO NOT WANT TO CHOOSE A CANDIDATE IN THIS CATEGORY?</strong>
+  <span>Use SKIP only if you intentionally want to make no selection for {{e.title}} and move to the next category.</span>
+ </div>
+ <button type="submit" name="action" value="skip" class="skip-button"
+   onclick="return confirm('You are choosing to SKIP the {{e.title}} category. No candidate will receive your selection in this category. You will move to the next category. Do you want to continue?');">
+   SKIP {{e.title|upper}} — NO SELECTION
+ </button>
+</div>
+
+<div class="actions ballot-save-actions">
+ {% if step>0 %}<a class='btn secondary' href='/ballot/{{step-1}}'>Back</a>{% else %}<span></span>{% endif %}
+ <button type="submit" name="action" value="choose" class="ballot-save-button">SAVE SELECTED CANDIDATE & CONTINUE</button>
+</div>
+</form>
+{% else %}
+<div class="vote-error">No active candidates are available for this category.</div>
+<form method=post>
+ <div class="skip-zone">
+  <div class="skip-warning"><strong>NO CANDIDATE AVAILABLE.</strong><span>You may deliberately skip this category and continue.</span></div>
+  <button type="submit" name="action" value="skip" class="skip-button"
+   onclick="return confirm('You are choosing to SKIP the {{e.title}} category and move to the next category. Continue?');">
+   SKIP {{e.title|upper}} — NO SELECTION
+  </button>
+ </div>
+</form>
+{% endif %}
+</div></div>
+<script>
+document.querySelectorAll('button[type="submit"]').forEach(function(btn){
+ btn.addEventListener('click',function(){
+  document.querySelectorAll('button[type="submit"]').forEach(function(x){x.classList.remove('button-selected');});
+  btn.classList.add('button-selected');
+ });
+});
+const radios=[...document.querySelectorAll('input[name="candidate"]')];
+const status=document.getElementById('selection_status');
+function updateSelection(){
+ if(!status) return;
+ const r=radios.find(x=>x.checked);
+ if(r){
+   const card=r.closest('.candidate-profile-card');
+   const name=card?card.querySelector('.candidate-name'):null;
+   status.textContent=(name?name.textContent:'Candidate')+' selected.';
+ }else status.textContent='Select a candidate, or deliberately skip this category.';
+}
+radios.forEach(r=>r.addEventListener('change',updateSelection));
+updateSelection();
+</script>

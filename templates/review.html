@@ -1,0 +1,55 @@
+<!doctype html><link rel=stylesheet href=/static/style.css><meta name=viewport content='width=device-width,initial-scale=1'>
+<header><b>Review six simulated choices</b></header><div class=demo>TRAINING / SIMULATION ONLY.</div>
+<div class=wrap>
+<div class="odm-screen-header project-screen-brand">
+ <img src="/static/odm_screen_header.png" alt="Orange Democratic Movement" class="odm-screen-header-image">
+</div>
+<div class=card><h2>Review</h2>
+<div class="voter-confirm">
+  <div class="muted">Voter ID making these selections</div>
+  <div class="voter-id">{{ voter_id }}</div>
+  <div class="muted">Please confirm this is your ID before saving the simulated ballot.</div>
+</div>
+
+<div class="review-help"><b>Confirm each category using the candidate photograph and name. A red SKIPPED card means you deliberately made no selection in that category.</b></div>
+
+<div class="review-candidate-grid">
+{% for e in elections %}
+{% set picked=choices.get(e.key) %}
+<div class="review-candidate-card {% if picked and picked.skipped %}review-skipped-card{% endif %}">
+  <div class="review-election">{{e.title}}</div>
+  {% if picked and picked.skipped %}
+    <div class="review-skip-symbol">SKIPPED</div>
+    <div class="review-skip-text">No candidate selected in this category</div>
+  {% else %}
+    <div class="review-photo">
+      {% if picked and picked.photo_url %}
+        <img src="{{picked.photo_url}}" alt="Photo of {{picked.candidate_name}}">
+      {% else %}
+        <div class="review-no-photo">No photo</div>
+      {% endif %}
+    </div>
+    <div class="review-candidate-name">{% if picked and picked.candidate_name %}{{picked.candidate_name}}{% else %}—{% endif %}</div>
+  {% endif %}
+  <a class="btn review-edit" href="/ballot/{{loop.index0}}">Change {{e.title}} choice</a>
+</div>
+{% endfor %}
+</div>
+
+<div class="final-save-note">FINAL STEP: Check the six categories above, then press the button below to save this voter's completed simulated ballot.</div>
+<form method=post action=/cast>
+  <div class="actions final-save-actions">
+    <button class="final-save-button" type=submit>SAVE SIMULATED BALLOT SET</button>
+  </div>
+</form>
+</div></div>
+<script>
+(function(){
+  document.querySelectorAll('.final-save-button, .review-edit').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.final-save-button, .review-edit').forEach(function(x){x.classList.remove('button-selected');});
+      el.classList.add('button-selected');
+    });
+  });
+})();
+</script>
