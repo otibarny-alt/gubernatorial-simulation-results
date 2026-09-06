@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: training-e-ballot-prototype
-    env: python
+    name: gubernatorial-simulation-results-dashboard
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 120
+    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 60
+    healthCheckPath: /health
