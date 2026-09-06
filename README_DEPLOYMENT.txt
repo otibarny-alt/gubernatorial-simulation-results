@@ -56,3 +56,9 @@ After deploy
 2. Open the dashboard and sign in.
 3. The HTML page should load immediately. Live totals can take longer only if the upstream Voting Simulation itself is waking from sleep.
 4. Once the upstream responds, the dashboard refreshes every 15 seconds.
+
+
+V3 additions:
+- Fast Print Results for Gubernatorial Candidate Results only.
+- Fast paginated Polling Station Stream Submission Status filter (All / Closed & Submitted / Not Yet Submitted).
+- Reuses cached governor snapshot; no extra upstream call during normal main-page render.
