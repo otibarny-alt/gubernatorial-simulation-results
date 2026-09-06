@@ -216,6 +216,10 @@ def build_summary(county='', constituency='', ward=''):
 
     key = (norm(county), norm(constituency), norm(ward))
     expected = geo['expected_by_filter'].get(key, [])
+    # IMPORTANT: keep the proven Fresh V2 vote-filter method. The simulation feed
+    # identifies the ballot stream reliably, while later geographic comparisons
+    # could reject valid rows when hierarchy labels/keys differ.
+    allowed = set(expected)
     stream_rows = snap.get('streams') or []
 
     candidate_names = {}
@@ -230,14 +234,11 @@ def build_summary(county='', constituency='', ward=''):
             candidate_names[cid] = c.get('name') or cid
 
     for row in stream_rows:
-        # Filter using the geographic fields carried by the live feed itself.
-        # Stream names are not globally unique, so matching only on stream name
-        # can hide valid votes when the same stream label appears elsewhere.
-        if county and norm(row.get('county')) != norm(county):
-            continue
-        if constituency and norm(row.get('constituency')) != norm(constituency):
-            continue
-        if ward and norm(row.get('ward')) != norm(ward):
+        # Restore the exact Fresh V2 matching logic that was confirmed working:
+        # resolve the selected County/Constituency/Ward to its expected stream keys
+        # locally, then include live rows by stream key.
+        skey = norm(row.get('stream'))
+        if skey not in allowed:
             continue
         status = str(row.get('status') or '').upper()
         if status in {'OPEN', 'CLOSED'}: opened += 1
