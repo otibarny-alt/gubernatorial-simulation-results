@@ -216,7 +216,6 @@ def build_summary(county='', constituency='', ward=''):
 
     key = (norm(county), norm(constituency), norm(ward))
     expected = geo['expected_by_filter'].get(key, [])
-    allowed = set(expected)
     stream_rows = snap.get('streams') or []
 
     candidate_names = {}
@@ -231,8 +230,14 @@ def build_summary(county='', constituency='', ward=''):
             candidate_names[cid] = c.get('name') or cid
 
     for row in stream_rows:
-        skey = norm(row.get('stream'))
-        if skey not in allowed:
+        # Filter using the geographic fields carried by the live feed itself.
+        # Stream names are not globally unique, so matching only on stream name
+        # can hide valid votes when the same stream label appears elsewhere.
+        if county and norm(row.get('county')) != norm(county):
+            continue
+        if constituency and norm(row.get('constituency')) != norm(constituency):
+            continue
+        if ward and norm(row.get('ward')) != norm(ward):
             continue
         status = str(row.get('status') or '').upper()
         if status in {'OPEN', 'CLOSED'}: opened += 1
@@ -316,11 +321,16 @@ def build_stream_status(county='', constituency='', ward='', submission_status='
     if snap is None:
         snap = fetch_snapshot()
 
+    live_by_geo = {}
     live_by_stream = {}
     for row in (snap.get('streams') or []):
         skey = norm(row.get('stream'))
-        if skey:
-            live_by_stream[skey] = row
+        if not skey:
+            continue
+        gkey = (norm(row.get('county')), norm(row.get('constituency')), norm(row.get('ward')), norm(row.get('poll_station')), skey)
+        live_by_geo[gkey] = row
+        # Keep name-only fallback for older snapshots, but only as a fallback.
+        live_by_stream.setdefault(skey, row)
 
     wanted = str(submission_status or 'all').strip().lower()
     rows = []
@@ -329,7 +339,8 @@ def build_stream_status(county='', constituency='', ward='', submission_status='
 
     for skey in expected:
         g = geo['by_stream'].get(skey, {})
-        live = live_by_stream.get(skey, {})
+        gkey = (norm(g.get('county')), norm(g.get('constituency')), norm(g.get('ward')), norm(g.get('poll_station')), norm(g.get('stream') or skey))
+        live = live_by_geo.get(gkey) or live_by_stream.get(skey, {})
         live_status = str(live.get('status') or '').strip().upper()
         submitted = live_status == 'CLOSED'
         if submitted:
