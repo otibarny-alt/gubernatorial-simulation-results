@@ -102,13 +102,17 @@ $('printResultsBtn').addEventListener('click',()=>{
   pw.document.write(`<!doctype html><html><head><title>Gubernatorial Candidate Results</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px}h1{font-size:22px;margin:0 0 6px}.meta{font-size:12px;color:#555;margin:0 0 18px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid #ccc;text-align:left}th{background:#f3f3f3}th.num,td.num{text-align:right}@page{size:A4;margin:14mm}</style></head><body><h1>Gubernatorial Candidate Results</h1><div class="meta">${meta}</div>${table}<script>window.onload=()=>{setTimeout(()=>window.print(),50)}<\/script></body></html>`);
   pw.document.close();
 });
-$('emailResultsBtn').addEventListener('click',()=>{
-  const c=$('county').selectedOptions[0]?.text||'All Counties', k=$('constituency').selectedOptions[0]?.text||'All Constituencies', w=$('ward').selectedOptions[0]?.text||'All Wards';
-  const rows=[...$('candidateBody').querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll('td')].map(td=>td.innerText.trim()));
-  const resultLines=rows.length&&rows[0].length===4?rows.map(r=>`${r[0]}. ${r[1]} — ${r[2]} votes (${r[3]})`).join('\n'):'No gubernatorial candidate selections yet.';
-  const subject=`Gubernatorial Simulation Candidate Results — ${c}`;
-  const body=`2027 Gubernatorial Simulation Results\nTRAINING / SIMULATION ONLY — NON-BINDING\n\nCounty: ${c}\nConstituency: ${k}\nWard: ${w}\n\nGubernatorial Candidate Results\n${resultLines}\n\nGenerated: ${new Date().toLocaleString()}\n\nThis dashboard is for training and simulation only and does not constitute an official election result.`;
-  window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+$('emailResultsBtn').addEventListener('click',async()=>{
+  const recipient=prompt('Enter recipient email address:');
+  if(recipient===null)return;
+  const email=recipient.trim();
+  if(!email)return alert('Please enter a recipient email address.');
+  const btn=$('emailResultsBtn'), oldText=btn.textContent;
+  btn.disabled=true;btn.textContent='Sending PDF…';
+  try{
+    const d=await getJSON('/api/email-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recipient:email,county:$('county').value,constituency:$('constituency').value,ward:$('ward').value})});
+    alert(d.message||'Results PDF emailed successfully.');
+  }catch(e){alert('Email failed: '+e.message)}finally{btn.disabled=false;btn.textContent=oldText}
 });
 $('county').addEventListener('change',loadConstituencies);$('constituency').addEventListener('change',loadWards);$('applyBtn').addEventListener('click',async()=>{streamPage=1;await loadSummary();loadStreamStatus(1)});$('applyStreamStatusBtn').addEventListener('click',()=>{streamPage=1;loadStreamStatus(1)});$('submissionStatus').addEventListener('change',()=>{streamPage=1;loadStreamStatus(1)});$('streamPrevBtn').addEventListener('click',()=>{if(streamPage>1)loadStreamStatus(streamPage-1)});$('streamNextBtn').addEventListener('click',()=>{if(streamPage<streamTotalPages)loadStreamStatus(streamPage+1)});$('refreshBtn').addEventListener('click',async()=>{if(busy)return;$('status').textContent='Refreshing upstream snapshot…';try{await getJSON('/api/refresh',{method:'POST'});await loadSummary();loadStreamStatus(streamPage)}catch(e){$('status').textContent=e.message}});
 (async()=>{await loadLocations();await loadSummary();loadStreamStatus(1);setInterval(loadSummary,15000);setInterval(()=>loadStreamStatus(streamPage),30000)})();
