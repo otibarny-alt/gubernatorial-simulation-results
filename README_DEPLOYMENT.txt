@@ -1,64 +1,40 @@
-2027 GUBERNATORIAL SIMULATION RESULTS DASHBOARD — FRESH V1
-==========================================================
+2027 SENATORIAL SIMULATION RESULTS DASHBOARD — FRESH V1
 
-Purpose
--------
-A clean, lightweight TRAINING / SIMULATION dashboard. It does not record votes and is not an official election result system.
+This is a separate TRAINING / SIMULATION ONLY dashboard for senatorial results.
 
-Architecture
-------------
-- Browser page renders immediately.
-- One live data request: /api/summary
-- Dashboard server calls only the Voting Simulation governor feed: /api/dashboard/governor
-- No direct PostgreSQL connection.
-- No county-winner calculations.
-- No stream-detail/recent-activity calls during page load.
-- Local county/constituency/ward and registered-voter CSVs are indexed once at startup.
-- Upstream snapshot is cached and shared among dashboard requests.
+DEPLOYMENT
+1. Create a new GitHub repository for the senatorial dashboard.
+2. Upload all files from this folder to the repository root.
+3. Create a new Render Web Service using Python.
+4. Build command: pip install -r requirements.txt
+5. Start command: gunicorn app:app --workers 2 --threads 2 --timeout 60
 
-Render build command
---------------------
-pip install -r requirements.txt
-
-Render start command
---------------------
-gunicorn app:app --workers 2 --threads 2 --timeout 60
-
-Required environment variables
-------------------------------
+ENVIRONMENT VARIABLES
 FLASK_SECRET_KEY=<long random secret>
 SIMULATION_BASE_URL=https://YOUR-VOTING-SIMULATION.onrender.com
-SIMULATION_DASHBOARD_API_KEY=<same value as DASHBOARD_API_KEY on Voting Simulation>
+SIMULATION_DASHBOARD_API_KEY=<same value as DASHBOARD_API_KEY on the Voting Simulation>
 AUTH_USERNAME=admin
 AUTH_PASSWORD_HASH=<Werkzeug-compatible password hash>
-
-Recommended performance variables
----------------------------------
 CACHE_SECONDS=10
 UPSTREAM_TIMEOUT_SECONDS=30
 
-Do NOT add DATABASE_URL or PG_POOL variables to this dashboard.
+Optional filenames:
+COUNTY_MAIN_FILENAME=county_main.csv
+AGENTS_LOGIN_FILENAME=agents_login.csv
 
-Expected deployment files
--------------------------
-app.py
-requirements.txt
-render.yaml
-.env.example
-county_main.csv
-agents_login.csv
-templates/index.html
-templates/login.html
+The dashboard server calls only the Voting Simulation senator feed: /api/dashboard/senator
+No direct DATABASE_URL is required for this dashboard.
 
-After deploy
-------------
-1. Open /health first. It should respond immediately and does NOT call the Voting Simulation.
-2. Open the dashboard and sign in.
-3. The HTML page should load immediately. Live totals can take longer only if the upstream Voting Simulation itself is waking from sleep.
-4. Once the upstream responds, the dashboard refreshes every 15 seconds.
+V4 FAST STREAM SUBMISSION FILTER
+- Adds a paginated Polling Station Stream Submission Status section.
+- Filters: All Streams, Closed & Submitted, Not Yet Submitted.
+- Uses the same cached senatorial snapshot already loaded by the dashboard, so it does not create a second upstream call during normal loading.
+- Uses local county_main.csv hierarchy to classify every expected stream, including streams that have never opened.
+- Page size is 100 streams to keep browser rendering fast.
+- No new environment variables are required.
 
-
-V3 additions:
-- Fast Print Results for Gubernatorial Candidate Results only.
-- Fast paginated Polling Station Stream Submission Status filter (All / Closed & Submitted / Not Yet Submitted).
-- Reuses cached governor snapshot; no extra upstream call during normal main-page render.
+V6 EMAIL RESULTS ADDITION
+- Adds Email Results beside Print Results.
+- Generates and attaches a Senatorial Simulation Results PDF.
+- Shows each candidate's county in the dashboard table, printout, PDF and email body.
+- Configure the SMTP variables shown in .env.example on the dashboard service.

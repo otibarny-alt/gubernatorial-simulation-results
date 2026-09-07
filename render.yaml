@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: gubernatorial-simulation-results-dashboard
+    name: senatorial-simulation-results-dashboard
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 60
