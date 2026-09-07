@@ -1,4 +1,5 @@
 import os, csv, re, time, threading, smtplib, ssl
+from html import escape
 from io import BytesIO
 from email.message import EmailMessage
 from functools import wraps
@@ -59,6 +60,22 @@ def to_int(v):
         return int(float(str(v or '0').replace(',', '').strip()))
     except Exception:
         return 0
+
+
+def candidate_county(record):
+    """Return the candidate's county across supported simulation feed formats."""
+    record = record or {}
+    for key in ('county', 'county_name', 'candidate_county', 'home_county', 'selected_county'):
+        value = record.get(key)
+        if value:
+            return friendly(value)
+    for container in ('location', 'electoral_area', 'geography'):
+        nested = record.get(container)
+        if isinstance(nested, dict):
+            value = nested.get('county') or nested.get('county_name')
+            if value:
+                return friendly(value)
+    return ''
 
 
 def login_required(fn):
@@ -223,6 +240,7 @@ def build_summary(county='', constituency='', ward=''):
     stream_rows = snap.get('streams') or []
 
     candidate_names = {}
+    candidate_counties = {}
     candidate_votes = defaultdict(int)
     candidate_selections = skipped = participants = 0
     opened = closed = 0
@@ -232,6 +250,7 @@ def build_summary(county='', constituency='', ward=''):
         cid = str(c.get('candidate_id', '') or '')
         if cid:
             candidate_names[cid] = c.get('name') or cid
+            candidate_counties[cid] = candidate_county(c)
 
     for row in stream_rows:
         # Restore the exact Fresh V2 matching logic that was confirmed working:
@@ -247,8 +266,10 @@ def build_summary(county='', constituency='', ward=''):
         skipped += to_int(row.get('skipped'))
         participants += to_int(row.get('participants'))
         names = row.get('candidate_names') or {}
+        counties = row.get('candidate_counties') or {}
         for cid, n in (row.get('candidate_votes') or {}).items():
             candidate_names[cid] = names.get(cid) or candidate_names.get(cid) or cid
+            candidate_counties[cid] = friendly(counties.get(cid)) or candidate_counties.get(cid, '')
             candidate_votes[cid] += to_int(n)
         t = row.get('closed_at') or row.get('opened_at') or ''
         if t > last_updated: last_updated = t
@@ -273,6 +294,7 @@ def build_summary(county='', constituency='', ward=''):
                 cid = str(c.get('candidate_id', '') or '')
                 if cid:
                     candidate_names[cid] = c.get('name') or cid
+                    candidate_counties[cid] = candidate_county(c)
                     candidate_votes[cid] = to_int(c.get('votes'))
 
     candidates = []
@@ -281,6 +303,7 @@ def build_summary(county='', constituency='', ward=''):
         candidates.append({
             'candidate_id': cid,
             'candidate': candidate_names.get(cid, cid),
+            'county': candidate_counties.get(cid) or (friendly(county) if county else 'County Not Provided'),
             'votes': votes,
             'share': round((votes / candidate_selections * 100), 2) if candidate_selections else 0,
         })
@@ -474,14 +497,20 @@ def build_results_pdf(summary):
         f"<b>Streams Closed:</b> {to_int(reporting.get('closed_streams')):,} / {to_int(reporting.get('expected_streams')):,}",
         meta_style
     ))
-    data = [['Rank', 'Candidate', 'Votes', 'Share']]
+    data = [['Rank', 'Candidate', 'County', 'Votes', 'Share']]
     candidates = summary.get('candidates') or []
     if candidates:
         for i, row in enumerate(candidates, 1):
-            data.append([str(i), str(row.get('candidate') or ''), f"{to_int(row.get('votes')):,}", f"{row.get('share', 0)}%"])
+            data.append([
+                str(i),
+                Paragraph(escape(str(row.get('candidate') or '')), styles['Normal']),
+                Paragraph(escape(str(row.get('county') or 'County Not Provided')), styles['Normal']),
+                f"{to_int(row.get('votes')):,}",
+                f"{row.get('share', 0)}%",
+            ])
     else:
-        data.append(['', 'No gubernatorial candidate selections yet.', '0', '0%'])
-    table = Table(data, colWidths=[18*mm, 100*mm, 28*mm, 25*mm], repeatRows=1)
+        data.append(['', 'No gubernatorial candidate selections yet.', '', '0', '0%'])
+    table = Table(data, colWidths=[14*mm, 65*mm, 48*mm, 24*mm, 20*mm], repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#F3F4F6')),
         ('TEXTCOLOR',(0,0),(-1,0),colors.black),
@@ -489,7 +518,7 @@ def build_results_pdf(summary):
         ('FONTNAME',(0,1),(-1,-1),'Helvetica'),
         ('FONTSIZE',(0,0),(-1,-1),9),
         ('ALIGN',(0,0),(0,-1),'CENTER'),
-        ('ALIGN',(2,1),(-1,-1),'RIGHT'),
+        ('ALIGN',(3,1),(-1,-1),'RIGHT'),
         ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
         ('GRID',(0,0),(-1,-1),0.35,colors.HexColor('#CCCCCC')),
         ('BOTTOMPADDING',(0,0),(-1,-1),6),
@@ -507,6 +536,13 @@ def send_results_email(recipient, pdf_bytes, summary):
     county = friendly(f.get('county')) or 'All Counties'
     constituency = friendly(f.get('constituency')) or 'All Constituencies'
     ward = friendly(f.get('ward')) or 'All Wards'
+    candidate_lines = []
+    for i, row in enumerate(summary.get('candidates') or [], 1):
+        candidate_lines.append(
+            f"{i}. {row.get('candidate') or ''} — {row.get('county') or 'County Not Provided'}: "
+            f"{to_int(row.get('votes')):,} votes ({row.get('share', 0)}%)"
+        )
+    candidate_results = '\n'.join(candidate_lines) or 'No gubernatorial candidate selections yet.'
     msg = EmailMessage()
     msg['Subject'] = f'Gubernatorial Simulation Candidate Results — {county}'
     msg['From'] = f'{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>' if SMTP_FROM_NAME else SMTP_FROM_EMAIL
@@ -515,6 +551,7 @@ def send_results_email(recipient, pdf_bytes, summary):
         'Attached are the current 2027 Gubernatorial Simulation Candidate Results.\n\n'
         'TRAINING / SIMULATION ONLY — NON-BINDING\n'
         f'County: {county}\nConstituency: {constituency}\nWard: {ward}\n\n'
+        f'Candidate Results:\n{candidate_results}\n\n'
         'This dashboard is for training and simulation only and does not constitute an official election result.'
     )
     safe_county = re.sub(r'[^A-Za-z0-9_-]+', '_', county).strip('_') or 'All_Counties'
