@@ -31,13 +31,14 @@ UPSTREAM_TIMEOUT_SECONDS = max(5.0, float(os.getenv('UPSTREAM_TIMEOUT_SECONDS', 
 AUTH_USERNAME = os.getenv('AUTH_USERNAME', '').strip()
 AUTH_PASSWORD_HASH = os.getenv('AUTH_PASSWORD_HASH', '').strip()
 # Test candidates for this county-based contest are registered in Kisumu.
+# Keep this configurable for a later multi-county candidate catalogue.
 CANDIDATE_DEFAULT_COUNTY = os.getenv('CANDIDATE_DEFAULT_COUNTY', 'Kisumu').strip()
 SMTP_HOST = os.getenv('SMTP_HOST', '').strip()
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587') or 587)
 SMTP_USERNAME = os.getenv('SMTP_USERNAME', '').strip()
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', SMTP_USERNAME).strip()
-SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', '2027 Senatorial Simulation Results').strip()
+SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', '2027 Gubernatorial Simulation Results').strip()
 SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').strip().lower() in {'1','true','yes','on'}
 SMTP_USE_SSL = os.getenv('SMTP_USE_SSL', 'false').strip().lower() in {'1','true','yes','on'}
 
@@ -52,9 +53,6 @@ def norm(v):
     return re.sub(r'[-_\s]+', ' ', str(v or '').strip().lower()).strip()
 
 
-def geo_key(county, constituency, ward, poll_station, stream):
-    return '|'.join((norm(county), norm(constituency), norm(ward), norm(poll_station), norm(stream)))
-
 def friendly(v):
     text = str(v or '').strip()
     return re.sub(r'\s+', ' ', re.sub(r'[_-]+', ' ', text)).title() if text else ''
@@ -68,10 +66,18 @@ def to_int(v):
 
 
 def candidate_county(record):
+    """Return the candidate's county across supported simulation feed formats."""
     record = record or {}
     for key in ('county', 'county_name', 'candidate_county', 'home_county', 'selected_county'):
-        if record.get(key):
-            return friendly(record.get(key))
+        value = record.get(key)
+        if value:
+            return friendly(value)
+    for container in ('location', 'electoral_area', 'geography'):
+        nested = record.get(container)
+        if isinstance(nested, dict):
+            value = nested.get('county') or nested.get('county_name')
+            if value:
+                return friendly(value)
     return ''
 
 
@@ -115,7 +121,7 @@ def load_geo():
     with open(path, encoding='utf-8-sig', errors='replace', newline='') as f:
         rows = list(csv.DictReader(f))
 
-    counties, constituencies, wards, stations, streams = {}, {}, {}, {}, []
+    counties, constituencies, wards, stations, streams = {}, {}, {}, {}, {}
     for r in rows:
         kind, name = r.get('list_name', ''), r.get('name', '')
         if not name:
@@ -125,7 +131,7 @@ def load_geo():
         elif kind == 'constituency': constituencies[norm(name)] = item
         elif kind == 'ward': wards[norm(name)] = item
         elif kind == 'poll_station': stations[norm(name)] = item
-        elif kind == 'poll_station_stream': streams.append(item)
+        elif kind == 'poll_station_stream': streams[norm(name)] = item
 
     by_stream = {}
     counties_ui = {}
@@ -133,7 +139,7 @@ def load_geo():
     wards_ui = defaultdict(dict)
     expected_by_filter = defaultdict(list)
 
-    for srow in streams:
+    for _, srow in streams.items():
         station = stations.get(norm(srow.get('poll_station_key')), {})
         ward = wards.get(norm(station.get('ward_key')), {})
         constituency = constituencies.get(norm(ward.get('constituency_key')), {})
@@ -148,9 +154,7 @@ def load_geo():
             'poll_station': station.get('name', ''),
             'stream': srow.get('name', ''),
         }
-        skey = geo_key(geo['county'], geo['constituency'], geo['ward'], geo['poll_station'], geo['stream'])
-        if skey in by_stream:
-            continue
+        skey = norm(geo['stream'])
         by_stream[skey] = geo
 
         ck, cok, wk = norm(geo['county']), norm(geo['constituency']), norm(geo['ward'])
@@ -207,7 +211,7 @@ def fetch_snapshot(force=False):
             raise RuntimeError('Simulation dashboard connection is not configured.')
         try:
             r = _http.get(
-                f'{SIMULATION_BASE_URL}/api/dashboard/senator',
+                f'{SIMULATION_BASE_URL}/api/dashboard/governor',
                 headers={'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY},
                 timeout=(3.0, UPSTREAM_TIMEOUT_SECONDS),
             )
@@ -232,6 +236,9 @@ def build_summary(county='', constituency='', ward=''):
 
     key = (norm(county), norm(constituency), norm(ward))
     expected = geo['expected_by_filter'].get(key, [])
+    # IMPORTANT: keep the proven Fresh V2 vote-filter method. The simulation feed
+    # identifies the ballot stream reliably, while later geographic comparisons
+    # could reject valid rows when hierarchy labels/keys differ.
     allowed = set(expected)
     stream_rows = snap.get('streams') or []
 
@@ -249,12 +256,11 @@ def build_summary(county='', constituency='', ward=''):
             candidate_counties[cid] = candidate_county(c) or friendly(CANDIDATE_DEFAULT_COUNTY)
 
     for row in stream_rows:
-        # Filter by the geography carried by the live event itself. Stream names are not globally unique.
-        if county and norm(row.get('county')) != norm(county):
-            continue
-        if constituency and norm(row.get('constituency')) != norm(constituency):
-            continue
-        if ward and norm(row.get('ward')) != norm(ward):
+        # Restore the exact Fresh V2 matching logic that was confirmed working:
+        # resolve the selected County/Constituency/Ward to its expected stream keys
+        # locally, then include live rows by stream key.
+        skey = norm(row.get('stream'))
+        if skey not in allowed:
             continue
         status = str(row.get('status') or '').upper()
         if status in {'OPEN', 'CLOSED'}: opened += 1
@@ -266,12 +272,12 @@ def build_summary(county='', constituency='', ward=''):
         counties = row.get('candidate_counties') or {}
         for cid, n in (row.get('candidate_votes') or {}).items():
             candidate_names[cid] = names.get(cid) or candidate_names.get(cid) or cid
-            candidate_counties[cid] = friendly(counties.get(cid)) or candidate_counties.get(cid, '') or friendly(row.get('county'))
+            candidate_counties[cid] = friendly(counties.get(cid)) or candidate_counties.get(cid, '')
             candidate_votes[cid] += to_int(n)
         t = row.get('closed_at') or row.get('opened_at') or ''
         if t > last_updated: last_updated = t
 
-    registered = sum(reg.get(norm((geo['by_stream'].get(skey) or {}).get('stream')), 0) for skey in expected)
+    registered = sum(reg.get(skey, 0) for skey in expected)
     expected_count = len(expected)
     not_started = max(0, expected_count - opened)
     total_votes_not_cast = max(0, registered - participants)
@@ -293,14 +299,13 @@ def build_summary(county='', constituency='', ward=''):
                     candidate_names[cid] = c.get('name') or cid
                     candidate_counties[cid] = candidate_county(c) or candidate_counties.get(cid) or friendly(CANDIDATE_DEFAULT_COUNTY)
                     candidate_votes[cid] = to_int(c.get('votes'))
-            total_votes_not_cast = max(0, registered - participants)
 
     candidates = []
     for cid in set(candidate_names) | set(candidate_votes):
         votes = candidate_votes.get(cid, 0)
         registered_county = candidate_counties.get(cid) or friendly(CANDIDATE_DEFAULT_COUNTY)
-        # Senator candidates belong to one county and must not be listed as
-        # zero-vote candidates under any other selected county.
+        # Governor candidates belong to one county. Do not manufacture a zero-vote
+        # row for a Kisumu candidate when another county is selected.
         if county and norm(registered_county) != norm(county):
             continue
         candidates.append({
@@ -336,7 +341,6 @@ def build_summary(county='', constituency='', ward=''):
         'warning': _cache['last_error'] if _cache['last_error'] else '',
     }
 
-
 def build_stream_status(county='', constituency='', ward='', submission_status='all', page=1, page_size=100):
     """Fast paginated stream submission view built from local hierarchy + cached live snapshot."""
     geo = load_geo()
@@ -349,11 +353,16 @@ def build_stream_status(county='', constituency='', ward='', submission_status='
     if snap is None:
         snap = fetch_snapshot()
 
+    live_by_geo = {}
     live_by_stream = {}
     for row in (snap.get('streams') or []):
-        skey = geo_key(row.get('county'), row.get('constituency'), row.get('ward'), row.get('poll_station'), row.get('stream'))
-        if row.get('stream'):
-            live_by_stream[skey] = row
+        skey = norm(row.get('stream'))
+        if not skey:
+            continue
+        gkey = (norm(row.get('county')), norm(row.get('constituency')), norm(row.get('ward')), norm(row.get('poll_station')), skey)
+        live_by_geo[gkey] = row
+        # Keep name-only fallback for older snapshots, but only as a fallback.
+        live_by_stream.setdefault(skey, row)
 
     wanted = str(submission_status or 'all').strip().lower()
     rows = []
@@ -362,7 +371,8 @@ def build_stream_status(county='', constituency='', ward='', submission_status='
 
     for skey in expected:
         g = geo['by_stream'].get(skey, {})
-        live = live_by_stream.get(skey, {})
+        gkey = (norm(g.get('county')), norm(g.get('constituency')), norm(g.get('ward')), norm(g.get('poll_station')), norm(g.get('stream') or skey))
+        live = live_by_geo.get(gkey) or live_by_stream.get(skey, {})
         live_status = str(live.get('status') or '').strip().upper()
         submitted = live_status == 'CLOSED'
         if submitted:
@@ -443,7 +453,6 @@ def api_summary():
     except Exception as exc:
         return jsonify({'error': str(exc)}), 503
 
-
 @app.get('/api/stream-status')
 @login_required
 def api_stream_status():
@@ -460,30 +469,33 @@ def api_stream_status():
         return jsonify({'error': str(exc)}), 503
 
 
+
 def valid_email(value):
-    return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", str(value or '').strip()))
+    value = str(value or '').strip()
+    return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value))
 
 
 def build_results_pdf(summary):
     buf = BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=A4, rightMargin=16*mm, leftMargin=16*mm,
+        buf, pagesize=A4,
+        rightMargin=16*mm, leftMargin=16*mm,
         topMargin=14*mm, bottomMargin=14*mm,
-        title='Senatorial Candidate Results - Training Simulation Only'
+        title='Gubernatorial Candidate Results - Training Simulation Only'
     )
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('TitleCenter', parent=styles['Title'], alignment=TA_CENTER, fontSize=16, leading=20, spaceAfter=6)
     notice_style = ParagraphStyle('Notice', parent=styles['Normal'], alignment=TA_CENTER, fontSize=9, leading=12, textColor=colors.HexColor('#A14E00'), spaceAfter=10)
     meta_style = ParagraphStyle('Meta', parent=styles['Normal'], fontSize=9, leading=12, spaceAfter=10)
     story = [
-        Paragraph('2027 Senatorial Simulation Results', title_style),
+        Paragraph('2027 Gubernatorial Simulation Results', title_style),
         Paragraph('<b>TRAINING / SIMULATION ONLY — NON-BINDING</b>', notice_style),
     ]
     f = summary.get('filters') or {}
     county = friendly(f.get('county')) or 'All Counties'
     constituency = friendly(f.get('constituency')) or 'All Constituencies'
     ward = friendly(f.get('ward')) or 'All Wards'
-    story.append(Paragraph(f'<b>County:</b> {escape(county)}<br/><b>Constituency:</b> {escape(constituency)}<br/><b>Ward:</b> {escape(ward)}', meta_style))
+    story.append(Paragraph(f'<b>County:</b> {county}<br/><b>Constituency:</b> {constituency}<br/><b>Ward:</b> {ward}', meta_style))
     totals = summary.get('totals') or {}
     reporting = summary.get('reporting') or {}
     story.append(Paragraph(
@@ -505,10 +517,11 @@ def build_results_pdf(summary):
                 f"{row.get('share', 0)}%",
             ])
     else:
-        data.append(['', 'No senatorial candidate selections yet.', '', '0', '0%'])
+        data.append(['', 'No gubernatorial candidate selections yet.', '', '0', '0%'])
     table = Table(data, colWidths=[14*mm, 65*mm, 48*mm, 24*mm, 20*mm], repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#F3F4F6')),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.black),
         ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
         ('FONTNAME',(0,1),(-1,-1),'Helvetica'),
         ('FONTSIZE',(0,0),(-1,-1),9),
@@ -531,27 +544,29 @@ def send_results_email(recipient, pdf_bytes, summary):
     county = friendly(f.get('county')) or 'All Counties'
     constituency = friendly(f.get('constituency')) or 'All Constituencies'
     ward = friendly(f.get('ward')) or 'All Wards'
-    candidate_lines = [
-        f"{i}. {row.get('candidate') or ''} — {row.get('county') or 'County Not Provided'}: "
-        f"{to_int(row.get('votes')):,} votes ({row.get('share', 0)}%)"
-        for i, row in enumerate(summary.get('candidates') or [], 1)
-    ]
-    candidate_results = '\n'.join(candidate_lines) or 'No senatorial candidate selections yet.'
+    candidate_lines = []
+    for i, row in enumerate(summary.get('candidates') or [], 1):
+        candidate_lines.append(
+            f"{i}. {row.get('candidate') or ''} — {row.get('county') or 'County Not Provided'}: "
+            f"{to_int(row.get('votes')):,} votes ({row.get('share', 0)}%)"
+        )
+    candidate_results = '\n'.join(candidate_lines) or 'No gubernatorial candidate selections yet.'
     msg = EmailMessage()
-    msg['Subject'] = f'Senatorial Simulation Candidate Results — {county}'
+    msg['Subject'] = f'Gubernatorial Simulation Candidate Results — {county}'
     msg['From'] = f'{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>' if SMTP_FROM_NAME else SMTP_FROM_EMAIL
     msg['To'] = recipient
     msg.set_content(
-        'Attached are the current 2027 Senatorial Simulation Candidate Results.\n\n'
+        'Attached are the current 2027 Gubernatorial Simulation Candidate Results.\n\n'
         'TRAINING / SIMULATION ONLY — NON-BINDING\n'
         f'County: {county}\nConstituency: {constituency}\nWard: {ward}\n\n'
         f'Candidate Results:\n{candidate_results}\n\n'
         'This dashboard is for training and simulation only and does not constitute an official election result.'
     )
     safe_county = re.sub(r'[^A-Za-z0-9_-]+', '_', county).strip('_') or 'All_Counties'
-    msg.add_attachment(pdf_bytes, maintype='application', subtype='pdf', filename=f'Senatorial_Simulation_Results_{safe_county}.pdf')
+    msg.add_attachment(pdf_bytes, maintype='application', subtype='pdf', filename=f'Gubernatorial_Simulation_Results_{safe_county}.pdf')
     if SMTP_USE_SSL:
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30, context=ssl.create_default_context()) as server:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30, context=context) as server:
             if SMTP_USERNAME:
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.send_message(msg)
@@ -581,7 +596,6 @@ def api_email_results():
     except Exception as exc:
         app.logger.exception('Email results failed')
         return jsonify({'error': str(exc)}), 500
-
 
 @app.get('/api/counties')
 @login_required
@@ -620,7 +634,7 @@ def api_refresh():
 @app.get('/health')
 def health():
     # Never call the upstream simulation from health checks.
-    return jsonify({'ok': True, 'service': 'senatorial-simulation-dashboard-fresh'})
+    return jsonify({'ok': True, 'service': 'gubernatorial-simulation-dashboard-fresh'})
 
 
 # Load local CSV indexes once at worker startup. This is local-only and avoids

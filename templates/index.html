@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2027 Senatorial Simulation Results Dashboard</title>
+<title>2027 Gubernatorial Simulation Results Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root{--ink:#172033;--muted:#667085;--line:#e6e8ec;--panel:#fff;--bg:#f5f7fa;--accent:#ef7d00}
@@ -11,11 +11,11 @@
 .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3e6;color:#9a4f00;font-weight:700;font-size:12px}.wrap{max-width:1500px;margin:0 auto;padding:18px}.controls,.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.controls select,.controls button{height:40px;border:1px solid #cfd4dc;border-radius:8px;background:#fff;padding:0 10px}.controls select{min-width:205px}.controls button{cursor:pointer;font-weight:700}.controls .primary{background:var(--accent);color:white;border-color:var(--accent)}
 .status{margin:0 0 14px;color:var(--muted);min-height:20px}.stats{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}.stat .v{font-size:25px;font-weight:800}.stat .l{color:var(--muted);font-size:13px;margin-top:5px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.card h2{margin:0;font-size:17px}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.print-link,.email-link{border:1px solid #cfd4dc;border-radius:8px;background:#fff;padding:8px 12px;font-weight:700;cursor:pointer;color:var(--ink)}.email-link{margin-left:8px}.stream-card{margin-top:14px}.stream-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.stream-tools select,.stream-tools button{height:38px;border:1px solid #cfd4dc;border-radius:8px;background:#fff;padding:0 10px}.stream-tools button{cursor:pointer;font-weight:700}.stream-counts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}.stream-count{background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}.status-good{font-weight:700;color:#067647}.status-pending{font-weight:700;color:#b54708}.pager{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}.pager button{height:34px;border:1px solid #cfd4dc;border-radius:8px;background:#fff;padding:0 12px;cursor:pointer}.pager button:disabled{opacity:.45;cursor:default}.scroll{overflow:auto;max-height:560px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}th{background:#fafbfc;position:sticky;top:0}td.num,th.num{text-align:right}.chartbox{height:360px}.footer{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 4px}
-@media print{body{background:#fff}.header,.controls,.status,.stats,.card:not(#senatorialResultsCard),.footer,.print-link,.email-link{display:none!important}.wrap{max-width:none;padding:0}.grid{display:block}.card#senatorialResultsCard{display:block!important;border:0;box-shadow:none;padding:0}.card#senatorialResultsCard .card-head{margin-bottom:14px}.card#senatorialResultsCard h2{font-size:20px}.card#senatorialResultsCard .scroll{max-height:none;overflow:visible}table{font-size:12pt}th{position:static;background:#f3f3f3}th,td{padding:8px}.print-meta{display:block!important;margin:0 0 14px;font-size:10pt;color:#444}}@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:650px){.header{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:1fr}.controls select,.controls button{width:100%}}
+@media print{body{background:#fff}.header,.controls,.status,.stats,.card:not(#gubernatorialResultsCard),.footer,.print-link{display:none!important}.wrap{max-width:none;padding:0}.grid{display:block}.card#gubernatorialResultsCard{display:block!important;border:0;box-shadow:none;padding:0}.card#gubernatorialResultsCard .card-head{margin-bottom:14px}.card#gubernatorialResultsCard h2{font-size:20px}.card#gubernatorialResultsCard .scroll{max-height:none;overflow:visible}table{font-size:12pt}th{position:static;background:#f3f3f3}th,td{padding:8px}.print-meta{display:block!important;margin:0 0 14px;font-size:10pt;color:#444}}@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:650px){.header{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:1fr}.controls select,.controls button{width:100%}}
 </style>
 </head>
 <body>
-<div class="header"><div class="title"><h1>2027 Senatorial Simulation Results Dashboard</h1><p>Live TRAINING / SIMULATION results — non-binding</p></div><div>{% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}</div></div>
+<div class="header"><div class="title"><h1>2027 Gubernatorial Simulation Results Dashboard</h1><p>Live TRAINING / SIMULATION results — non-binding</p></div><div>{% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}</div></div>
 <div class="wrap">
  <div class="controls">
   <span class="badge">TRAINING / SIMULATION ONLY</span>
@@ -25,7 +25,7 @@
   <button class="primary" id="applyBtn">Apply Filters</button>
   <button id="refreshBtn">Refresh Now</button>
  </div>
- <div class="status" id="status">Dashboard ready. Loading live senatorial simulation results…</div>
+ <div class="status" id="status">Dashboard ready. Loading live gubernatorial simulation results…</div>
  <div class="stats">
   <div class="stat"><div class="v" id="registered">0</div><div class="l">Registered Voters</div></div>
   <div class="stat"><div class="v" id="cast">0</div><div class="l">Deliberate Votes Cast</div></div>
@@ -39,7 +39,7 @@
   <div class="stat"><div class="v" id="skipRate">0%</div><div class="l">Skipped / Registered</div></div>
  </div>
  <div class="grid">
-  <div class="card" id="senatorialResultsCard"><div class="card-head"><h2>Senatorial Candidate Results</h2><div><button type="button" class="print-link" id="printResultsBtn">Print Results</button><button type="button" class="email-link" id="emailResultsBtn">Email Results</button></div></div><div class="print-meta" id="printMeta" style="display:none"></div><div class="scroll"><table><thead><tr><th>Rank</th><th>Candidate</th><th>County</th><th class="num">Votes</th><th class="num">Share</th></tr></thead><tbody id="candidateBody"><tr><td colspan="5">Waiting for live data…</td></tr></tbody></table></div></div>
+  <div class="card" id="gubernatorialResultsCard"><div class="card-head"><h2>Gubernatorial Candidate Results</h2><div><button type="button" class="print-link" id="printResultsBtn">Print Results</button><button type="button" class="email-link" id="emailResultsBtn">Email Results</button></div></div><div class="print-meta" id="printMeta" style="display:none"></div><div class="scroll"><table><thead><tr><th>Rank</th><th>Candidate</th><th>County</th><th class="num">Votes</th><th class="num">Share</th></tr></thead><tbody id="candidateBody"><tr><td colspan="5">Waiting for live data…</td></tr></tbody></table></div></div>
   <div class="card"><h2>Candidate Votes</h2><div class="chartbox"><canvas id="candidateChart"></canvas></div></div>
  </div>
 
@@ -76,7 +76,7 @@ async function loadConstituencies(){const c=$('county').value, el=$('constituenc
 async function loadWards(){const c=$('county').value,k=$('constituency').value,w=$('ward');w.innerHTML='<option value="">All Wards</option>';w.disabled=!k;if(c&&k){(await getJSON('/api/wards?county='+encodeURIComponent(c)+'&constituency='+encodeURIComponent(k))).forEach(x=>w.add(new Option(x.label,x.value)))}}
 function render(d){
  $('registered').textContent=fmt(d.totals.registered_voters);$('cast').textContent=fmt(d.totals.candidate_selections);$('skipped').textContent=fmt(d.totals.skipped);$('participants').textContent=fmt(d.totals.participants);$('turnout').textContent=d.totals.turnout_percent+'%';$('opened').textContent=fmt(d.reporting.opened_streams);$('closed').textContent=fmt(d.reporting.closed_streams);$('expected').textContent=fmt(d.reporting.expected_streams);$('notCast').textContent=fmt(d.totals.total_votes_not_cast);$('skipRate').textContent=d.totals.skip_percent_registered+'%';
- $('candidateBody').innerHTML=d.candidates.length?d.candidates.map((x,i)=>`<tr><td>${i+1}</td><td>${x.candidate}</td><td>${x.county||'County Not Provided'}</td><td class="num">${fmt(x.votes)}</td><td class="num">${x.share}%</td></tr>`).join(''):'<tr><td colspan="5">No senatorial candidate selections yet.</td></tr>';
+ $('candidateBody').innerHTML=d.candidates.length?d.candidates.map((x,i)=>`<tr><td>${i+1}</td><td>${x.candidate}</td><td>${x.county||'County Not Provided'}</td><td class="num">${fmt(x.votes)}</td><td class="num">${x.share}%</td></tr>`).join(''):'<tr><td colspan="5">No gubernatorial candidate selections yet.</td></tr>';
  if(chart)chart.destroy(); chart=new Chart($('candidateChart'),{type:'bar',data:{labels:d.candidates.map(x=>x.candidate),datasets:[{label:'Votes',data:d.candidates.map(x=>x.votes)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},animation:{duration:250}}});
  let s=d.last_updated?'Latest stream activity: '+d.last_updated:'No stream activity yet'; if(d.using_cached_snapshot)s+=' — displaying last good snapshot while upstream reconnects.'; $('status').textContent=s;
 }
@@ -91,15 +91,15 @@ function renderStreamStatus(d){
 }
 async function loadStreamStatus(page=1){if(streamBusy)return;streamBusy=true;try{renderStreamStatus(await getJSON('/api/stream-status'+streamQuery(page),{cache:'no-store'}))}catch(e){$('streamStatusBody').innerHTML='<tr><td colspan="8">'+e.message+'</td></tr>'}finally{streamBusy=false}}
 
-async function loadSummary(){if(busy)return;busy=true;$('status').textContent='Loading live senatorial simulation results…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
+async function loadSummary(){if(busy)return;busy=true;$('status').textContent='Loading live gubernatorial simulation results…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
 $('printResultsBtn').addEventListener('click',()=>{
   const c=$('county').selectedOptions[0]?.text||'All Counties', k=$('constituency').selectedOptions[0]?.text||'All Constituencies', w=$('ward').selectedOptions[0]?.text||'All Wards';
-  const table=$('senatorialResultsCard').querySelector('table').outerHTML;
+  const table=$('gubernatorialResultsCard').querySelector('table').outerHTML;
   const pw=window.open('','_blank','width=900,height=700');
   if(!pw){alert('Please allow pop-ups for this site to print results.');return;}
   const meta=`TRAINING / SIMULATION ONLY — ${c} — ${k} — ${w} — Printed ${new Date().toLocaleString()}`;
   pw.document.open();
-  pw.document.write(`<!doctype html><html><head><title>Senatorial Candidate Results</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px}h1{font-size:22px;margin:0 0 6px}.meta{font-size:12px;color:#555;margin:0 0 18px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid #ccc;text-align:left}th{background:#f3f3f3}th.num,td.num{text-align:right}@page{size:A4;margin:14mm}</style></head><body><h1>Senatorial Candidate Results</h1><div class="meta">${meta}</div>${table}<script>window.onload=()=>{setTimeout(()=>window.print(),50)}<\/script></body></html>`);
+  pw.document.write(`<!doctype html><html><head><title>Gubernatorial Candidate Results</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px}h1{font-size:22px;margin:0 0 6px}.meta{font-size:12px;color:#555;margin:0 0 18px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid #ccc;text-align:left}th{background:#f3f3f3}th.num,td.num{text-align:right}@page{size:A4;margin:14mm}</style></head><body><h1>Gubernatorial Candidate Results</h1><div class="meta">${meta}</div>${table}<script>window.onload=()=>{setTimeout(()=>window.print(),50)}<\/script></body></html>`);
   pw.document.close();
 });
 $('emailResultsBtn').addEventListener('click',async()=>{
