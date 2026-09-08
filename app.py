@@ -285,6 +285,9 @@ def build_summary(county='', constituency='', ward=''):
     # For the national/all-counties view, the upstream aggregate is authoritative.
     # This also prevents a harmless stream-key formatting difference from hiding live votes.
     if not county and not constituency and not ward:
+        upstream_registered = to_int((snap.get('totals') or {}).get('registered_voters'))
+        if upstream_registered:
+            registered = upstream_registered
         upstream_total = to_int((snap.get('totals') or {}).get('candidate_selections'))
         upstream_skipped = to_int((snap.get('totals') or {}).get('skipped'))
         upstream_participants = to_int((snap.get('totals') or {}).get('participants'))
@@ -299,6 +302,7 @@ def build_summary(county='', constituency='', ward=''):
                     candidate_names[cid] = c.get('name') or cid
                     candidate_counties[cid] = candidate_county(c) or candidate_counties.get(cid) or friendly(CANDIDATE_DEFAULT_COUNTY)
                     candidate_votes[cid] = to_int(c.get('votes'))
+        total_votes_not_cast = max(0, registered - participants)
 
     candidates = []
     for cid in set(candidate_names) | set(candidate_votes):
