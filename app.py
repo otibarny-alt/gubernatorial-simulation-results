@@ -285,6 +285,8 @@ def build_summary(county='', constituency='', ward=''):
 
     registered = membership_registered(snap, county, constituency, ward)
     expected_count = len(expected)
+    if not county and not constituency and not ward:
+        expected_count = to_int(snap.get('expected_streams_total')) or expected_count
     not_started = max(0, expected_count - opened)
     total_votes_not_cast = max(0, registered - participants)
 
