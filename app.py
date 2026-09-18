@@ -509,8 +509,8 @@ def build_results_pdf(summary):
     totals = summary.get('totals') or {}
     reporting = summary.get('reporting') or {}
     story.append(Paragraph(
-        f"<b>Deliberate Votes Cast:</b> {to_int(totals.get('candidate_selections')):,} &nbsp;&nbsp; "
-        f"<b>Deliberate Votes Skipped:</b> {to_int(totals.get('skipped')):,} &nbsp;&nbsp; "
+        f"<b>Total Votes Cast:</b> {to_int(totals.get('candidate_selections')):,} &nbsp;&nbsp; "
+        f"<b>Total Votes Skipped:</b> {to_int(totals.get('skipped')):,} &nbsp;&nbsp; "
         f"<b>Participants:</b> {to_int(totals.get('participants')):,}<br/>"
         f"<b>Streams Closed:</b> {to_int(reporting.get('closed_streams')):,} / {to_int(reporting.get('expected_streams')):,}",
         meta_style
