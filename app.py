@@ -64,6 +64,13 @@ def to_int(v):
     except Exception:
         return 0
 
+def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
+    rows = snapshot.get('registered_voter_breakdown')
+    if not isinstance(rows, list):
+        raise RuntimeError('Voting API has not supplied the Kobo membership-register breakdown.')
+    filters = {'county': county, 'constituency': constituency, 'ward': ward, 'poll_station': poll_station}
+    return sum(to_int(row.get('registered_voters')) for row in rows if all(not value or norm(row.get(field)) == norm(value) for field, value in filters.items()))
+
 
 def candidate_county(record):
     """Return the candidate's county across supported simulation feed formats."""
@@ -232,7 +239,6 @@ def fetch_snapshot(force=False):
 def build_summary(county='', constituency='', ward=''):
     snap = fetch_snapshot()
     geo = load_geo()
-    reg = load_registered()
 
     key = (norm(county), norm(constituency), norm(ward))
     expected = geo['expected_by_filter'].get(key, [])
@@ -277,7 +283,7 @@ def build_summary(county='', constituency='', ward=''):
         t = row.get('closed_at') or row.get('opened_at') or ''
         if t > last_updated: last_updated = t
 
-    registered = sum(reg.get(skey, 0) for skey in expected)
+    registered = membership_registered(snap, county, constituency, ward)
     expected_count = len(expected)
     not_started = max(0, expected_count - opened)
     total_votes_not_cast = max(0, registered - participants)
