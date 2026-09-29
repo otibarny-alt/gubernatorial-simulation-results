@@ -69,7 +69,22 @@ def membership_registered(snapshot, county='', constituency='', ward='', poll_st
     if not isinstance(rows, list):
         raise RuntimeError('Voting API has not supplied the Kobo membership-register breakdown.')
     filters = {'county': county, 'constituency': constituency, 'ward': ward, 'poll_station': poll_station}
-    return sum(to_int(row.get('registered_voters')) for row in rows if all(not value or norm(row.get(field)) == norm(value) for field, value in filters.items()))
+    aliases = {}
+    geography = list(load_geo().get('by_stream', {}).values())
+    for field, value in filters.items():
+        if not value:
+            aliases[field] = set()
+            continue
+        accepted = {norm(value), norm(friendly(value))}
+        for geo in geography:
+            pair = {norm(geo.get(field)), norm(geo.get(field + '_label'))}
+            if accepted & pair:
+                accepted.update(pair)
+        accepted.discard('')
+        aliases[field] = accepted
+    return sum(to_int(row.get('registered_voters')) for row in rows
+               if all(not value or norm(row.get(field)) in aliases[field]
+                      for field, value in filters.items()))
 
 
 def candidate_county(record):
