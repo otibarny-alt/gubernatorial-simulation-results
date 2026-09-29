@@ -27,7 +27,7 @@ SIMULATION_DASHBOARD_API_KEY = os.getenv('SIMULATION_DASHBOARD_API_KEY', '').str
 COUNTY_MAIN_FILENAME = os.getenv('COUNTY_MAIN_FILENAME', 'county_main.csv').strip()
 AGENTS_LOGIN_FILENAME = os.getenv('AGENTS_LOGIN_FILENAME', 'agents_login.csv').strip()
 CACHE_SECONDS = max(3, int(os.getenv('CACHE_SECONDS', '10')))
-UPSTREAM_TIMEOUT_SECONDS = max(5.0, float(os.getenv('UPSTREAM_TIMEOUT_SECONDS', '30')))
+UPSTREAM_TIMEOUT_SECONDS = max(120.0, float(os.getenv('UPSTREAM_TIMEOUT_SECONDS', '120')))
 AUTH_USERNAME = os.getenv('AUTH_USERNAME', '').strip()
 AUTH_PASSWORD_HASH = os.getenv('AUTH_PASSWORD_HASH', '').strip()
 # Test candidates for this county-based contest are registered in Kisumu.
