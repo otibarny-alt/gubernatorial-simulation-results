@@ -460,17 +460,23 @@ def index():
 @app.get('/api/summary')
 @login_required
 def api_summary():
+    county = request.args.get('county', '').strip()
+    if not county:
+        return jsonify({'error': 'Select a county before loading results. National presentation is disabled for performance.'}), 400
     try:
-        return jsonify(build_summary(request.args.get('county', ''), request.args.get('constituency', ''), request.args.get('ward', '')))
+        return jsonify(build_summary(county, request.args.get('constituency', ''), request.args.get('ward', '')))
     except Exception as exc:
         return jsonify({'error': str(exc)}), 503
 
 @app.get('/api/stream-status')
 @login_required
 def api_stream_status():
+    county = request.args.get('county', '').strip()
+    if not county:
+        return jsonify({'error': 'Select a county before loading stream results.'}), 400
     try:
         return jsonify(build_stream_status(
-            request.args.get('county', ''),
+            county,
             request.args.get('constituency', ''),
             request.args.get('ward', ''),
             request.args.get('submission_status', 'all'),
@@ -598,6 +604,8 @@ def send_results_email(recipient, pdf_bytes, summary):
 def api_email_results():
     try:
         payload = request.get_json(silent=True) or {}
+        if not str(payload.get('county') or '').strip():
+            return jsonify({'error':'Select a county before emailing results.'}), 400
         recipient = str(payload.get('recipient') or '').strip()
         if not valid_email(recipient):
             return jsonify({'error': 'Enter a valid recipient email address.'}), 400

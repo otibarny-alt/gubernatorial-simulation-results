@@ -19,7 +19,7 @@
 <div class="wrap">
  <div class="controls">
   <span class="badge">TRAINING / SIMULATION ONLY</span>
-  <select id="county"><option value="">All Counties</option></select>
+  <select id="county" required><option value="">Select County — Required</option></select>
   <select id="constituency" disabled><option value="">All Constituencies</option></select>
   <select id="ward" disabled><option value="">All Wards</option></select>
   <button class="primary" id="applyBtn">Apply Filters</button>
@@ -89,9 +89,9 @@ function renderStreamStatus(d){
  streamPage=d.page||1;streamTotalPages=d.total_pages||1;$('streamPageLabel').textContent='Page '+streamPage+' of '+streamTotalPages;$('streamPrevBtn').disabled=streamPage<=1;$('streamNextBtn').disabled=streamPage>=streamTotalPages;
  $('streamStatusBody').innerHTML=d.rows.length?d.rows.map(x=>`<tr><td>${x.county||''}</td><td>${x.constituency||''}</td><td>${x.ward||''}</td><td>${x.poll_station||''}</td><td>${x.stream||''}</td><td class="${x.submission_status==='CLOSED & SUBMITTED'?'status-good':'status-pending'}">${x.submission_status}</td><td>${x.operational_status||''}</td><td>${x.closed_at||'—'}</td></tr>`).join(''):'<tr><td colspan="8">No streams match this filter.</td></tr>';
 }
-async function loadStreamStatus(page=1){if(streamBusy)return;streamBusy=true;try{renderStreamStatus(await getJSON('/api/stream-status'+streamQuery(page),{cache:'no-store'}))}catch(e){$('streamStatusBody').innerHTML='<tr><td colspan="8">'+e.message+'</td></tr>'}finally{streamBusy=false}}
+async function loadStreamStatus(page=1){if(!$('county').value){$('streamStatusBody').innerHTML='<tr><td colspan="8">Select a county to load stream results.</td></tr>';return}if(streamBusy)return;streamBusy=true;try{renderStreamStatus(await getJSON('/api/stream-status'+streamQuery(page),{cache:'no-store'}))}catch(e){$('streamStatusBody').innerHTML='<tr><td colspan="8">'+e.message+'</td></tr>'}finally{streamBusy=false}}
 
-async function loadSummary(){if(busy)return;busy=true;$('status').textContent='Loading live gubernatorial simulation results…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
+async function loadSummary(){if(!$('county').value){$('status').textContent='Select a county, then choose Apply Filters. National presentation is disabled for performance.';return}if(busy)return;busy=true;$('status').textContent='Loading live gubernatorial simulation results for the selected county…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
 $('printResultsBtn').addEventListener('click',()=>{
   const c=$('county').selectedOptions[0]?.text||'All Counties', k=$('constituency').selectedOptions[0]?.text||'All Constituencies', w=$('ward').selectedOptions[0]?.text||'All Wards';
   const table=$('gubernatorialResultsCard').querySelector('table').outerHTML;
@@ -114,7 +114,7 @@ $('emailResultsBtn').addEventListener('click',async()=>{
     alert(d.message||'Results PDF emailed successfully.');
   }catch(e){alert('Email failed: '+e.message)}finally{btn.disabled=false;btn.textContent=oldText}
 });
-$('county').addEventListener('change',loadConstituencies);$('constituency').addEventListener('change',loadWards);$('applyBtn').addEventListener('click',async()=>{streamPage=1;await loadSummary();loadStreamStatus(1)});$('applyStreamStatusBtn').addEventListener('click',()=>{streamPage=1;loadStreamStatus(1)});$('submissionStatus').addEventListener('change',()=>{streamPage=1;loadStreamStatus(1)});$('streamPrevBtn').addEventListener('click',()=>{if(streamPage>1)loadStreamStatus(streamPage-1)});$('streamNextBtn').addEventListener('click',()=>{if(streamPage<streamTotalPages)loadStreamStatus(streamPage+1)});$('refreshBtn').addEventListener('click',async()=>{if(busy)return;$('status').textContent='Refreshing upstream snapshot…';try{await getJSON('/api/refresh',{method:'POST'});await loadSummary();loadStreamStatus(streamPage)}catch(e){$('status').textContent=e.message}});
-(async()=>{await loadLocations();await loadSummary();loadStreamStatus(1);setInterval(loadSummary,15000);setInterval(()=>loadStreamStatus(streamPage),30000)})();
+$('county').addEventListener('change',loadConstituencies);$('constituency').addEventListener('change',loadWards);$('applyBtn').addEventListener('click',async()=>{streamPage=1;await loadSummary();loadStreamStatus(1)});$('applyStreamStatusBtn').addEventListener('click',()=>{streamPage=1;loadStreamStatus(1)});$('submissionStatus').addEventListener('change',()=>{streamPage=1;loadStreamStatus(1)});$('streamPrevBtn').addEventListener('click',()=>{if(streamPage>1)loadStreamStatus(streamPage-1)});$('streamNextBtn').addEventListener('click',()=>{if(streamPage<streamTotalPages)loadStreamStatus(streamPage+1)});$('refreshBtn').addEventListener('click',async()=>{if(!$('county').value){$('status').textContent='Select a county before refreshing results.';return}if(busy)return;$('status').textContent='Refreshing upstream snapshot…';try{await getJSON('/api/refresh',{method:'POST'});await loadSummary();loadStreamStatus(streamPage)}catch(e){$('status').textContent=e.message}});
+(async()=>{await loadLocations();$('status').textContent='Select a county, then choose Apply Filters. National presentation is disabled for performance.';$('streamStatusBody').innerHTML='<tr><td colspan="8">Select a county to load stream results.</td></tr>';setInterval(()=>{if($('county').value)loadSummary()},15000);setInterval(()=>{if($('county').value)loadStreamStatus(streamPage)},30000)})();
 </script>
 </body></html>
