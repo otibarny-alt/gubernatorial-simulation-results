@@ -65,6 +65,18 @@ def to_int(v):
         return 0
 
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
+    response = requests.get(
+        SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
+        params={'county': county, 'constituency': constituency, 'ward': ward, 'polling_station': poll_station},
+        headers={'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY, 'Accept': 'application/json'},
+        timeout=(5, 120),
+    )
+    if response.status_code != 200:
+        raise RuntimeError('Authoritative voters-register count is unavailable; no voter total will be displayed.')
+    payload = response.json()
+    if not payload.get('ok'):
+        raise RuntimeError(payload.get('error') or 'Authoritative voters-register count failed.')
+    return to_int(payload.get('registered_voters'))
     rows = snapshot.get('registered_voter_breakdown')
     if not isinstance(rows, list):
         raise RuntimeError('Voting API has not supplied the combined voters-register breakdown.')
