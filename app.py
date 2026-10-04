@@ -21,8 +21,6 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'CHANGE-ME')
-from party_branding_client import register_party_branding
-register_party_branding(app)
 
 SIMULATION_BASE_URL = os.getenv('SIMULATION_BASE_URL', '').rstrip('/')
 SIMULATION_DASHBOARD_API_KEY = os.getenv('SIMULATION_DASHBOARD_API_KEY', '').strip()
@@ -69,7 +67,7 @@ def to_int(v):
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
     rows = snapshot.get('registered_voter_breakdown')
     if not isinstance(rows, list):
-        raise RuntimeError('Voting API has not supplied the Kobo membership-register breakdown.')
+        raise RuntimeError('Voting API has not supplied the combined voters-register breakdown.')
     filters = {'county': county, 'constituency': constituency, 'ward': ward, 'poll_station': poll_station}
     aliases = {}
     geography = list(load_geo().get('by_stream', {}).values())
@@ -302,17 +300,12 @@ def build_summary(county='', constituency='', ward=''):
 
     registered = membership_registered(snap, county, constituency, ward)
     expected_count = len(expected)
-    if not county and not constituency and not ward:
-        expected_count = to_int(snap.get('expected_streams_total')) or expected_count
     not_started = max(0, expected_count - opened)
     total_votes_not_cast = max(0, registered - participants)
 
     # For the national/all-counties view, the upstream aggregate is authoritative.
     # This also prevents a harmless stream-key formatting difference from hiding live votes.
     if not county and not constituency and not ward:
-        upstream_registered = to_int((snap.get('totals') or {}).get('registered_voters'))
-        if upstream_registered:
-            registered = upstream_registered
         upstream_total = to_int((snap.get('totals') or {}).get('candidate_selections'))
         upstream_skipped = to_int((snap.get('totals') or {}).get('skipped'))
         upstream_participants = to_int((snap.get('totals') or {}).get('participants'))
