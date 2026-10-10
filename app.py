@@ -4,6 +4,7 @@ from io import BytesIO
 from email.message import EmailMessage
 from functools import wraps
 from collections import defaultdict
+from dashboard_geo_index import build_geo_index
 
 import requests
 from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash
@@ -150,6 +151,8 @@ def load_geo():
     global _geo
     if _geo is not None:
         return _geo
+    _geo = build_geo_index(os.path.join(BASE_DIR, COUNTY_MAIN_FILENAME))
+    return _geo
 
     path = os.path.join(BASE_DIR, COUNTY_MAIN_FILENAME)
     with open(path, encoding='utf-8-sig', errors='replace', newline='') as f:
@@ -269,10 +272,6 @@ def build_summary(county='', constituency='', ward=''):
 
     key = (norm(county), norm(constituency), norm(ward))
     expected = geo['expected_by_filter'].get(key, [])
-    # IMPORTANT: keep the proven Fresh V2 vote-filter method. The simulation feed
-    # identifies the ballot stream reliably, while later geographic comparisons
-    # could reject valid rows when hierarchy labels/keys differ.
-    allowed = set(expected)
     stream_rows = snap.get('streams') or []
 
     candidate_names = {}
@@ -289,15 +288,17 @@ def build_summary(county='', constituency='', ward=''):
             candidate_counties[cid] = candidate_county(c) or friendly(CANDIDATE_DEFAULT_COUNTY)
 
     for row in stream_rows:
-        # Restore the exact Fresh V2 matching logic that was confirmed working:
-        # resolve the selected County/Constituency/Ward to its expected stream keys
-        # locally, then include live rows by stream key.
-        skey = norm(row.get('stream'))
-        if skey not in allowed:
+        if county and norm(row.get('county')) != norm(county):
+            continue
+        if constituency and norm(row.get('constituency')) != norm(constituency):
+            continue
+        if ward and norm(row.get('ward')) != norm(ward):
             continue
         status = str(row.get('status') or '').upper()
         if status in {'OPEN', 'CLOSED'}: opened += 1
         if status == 'CLOSED': closed += 1
+        if status != 'CLOSED':
+            continue
         candidate_selections += to_int(row.get('candidate_selections'))
         skipped += to_int(row.get('skipped'))
         participants += to_int(row.get('participants'))
@@ -317,7 +318,7 @@ def build_summary(county='', constituency='', ward=''):
 
     # For the national/all-counties view, the upstream aggregate is authoritative.
     # This also prevents a harmless stream-key formatting difference from hiding live votes.
-    if not county and not constituency and not ward:
+    if not county and not constituency and not ward and False:
         upstream_total = to_int((snap.get('totals') or {}).get('candidate_selections'))
         upstream_skipped = to_int((snap.get('totals') or {}).get('skipped'))
         upstream_participants = to_int((snap.get('totals') or {}).get('participants'))
