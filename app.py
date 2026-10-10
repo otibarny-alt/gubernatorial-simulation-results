@@ -67,7 +67,10 @@ def to_int(v):
         return 0
 
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
-    return count_registered_voters(county, constituency, ward, poll_station)
+    try:
+        return count_registered_voters(county, constituency, ward, poll_station)
+    except Exception as exc:
+        app.logger.warning('Direct PostgreSQL voter count unavailable; using voting API breakdown: %s', exc)
     response = requests.get(
         SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
         params={'county': county, 'constituency': constituency, 'ward': ward, 'polling_station': poll_station},
@@ -82,7 +85,7 @@ def membership_registered(snapshot, county='', constituency='', ward='', poll_st
     return to_int(payload.get('registered_voters'))
     rows = snapshot.get('registered_voter_breakdown')
     if not isinstance(rows, list):
-        raise RuntimeError('Voting API has not supplied the combined voters-register breakdown.')
+        return 0
     filters = {'county': county, 'constituency': constituency, 'ward': ward, 'poll_station': poll_station}
     aliases = {}
     geography = list(load_geo().get('by_stream', {}).values())
