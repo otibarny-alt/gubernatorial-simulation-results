@@ -16,6 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from postgres_voter_count import count_registered_voters
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -66,6 +67,7 @@ def to_int(v):
         return 0
 
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
+    return count_registered_voters(county, constituency, ward, poll_station)
     response = requests.get(
         SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
         params={'county': county, 'constituency': constituency, 'ward': ward, 'polling_station': poll_station},
