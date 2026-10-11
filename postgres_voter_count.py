@@ -59,64 +59,56 @@ def count_registered_voters(county="", constituency="", ward="", poll_station=""
     def indexed(column):
         return "LOWER(" + column + ")"
 
-    clauses = ["active"]
+    branches = []
     params = []
+
+    def add_direct(fields):
+        predicates = ["active"]
+        for column, value in fields:
+            if value:
+                predicates.append(indexed(column) + " = %s")
+                params.append(_norm(value))
+        branches.append(
+            "SELECT national_id FROM master_voters WHERE " +
+            " AND ".join(predicates)
+        )
+
+    def add_stations(stations):
+        if stations:
+            branches.append(
+                "SELECT national_id FROM master_voters WHERE active AND " +
+                indexed("polling_station") + " = ANY(%s)"
+            )
+            params.append(stations)
+
     if poll_station:
-        clauses.append(indexed("polling_station") + " = %s")
-        params.append(_norm(poll_station))
+        add_direct((("polling_station", poll_station),))
     elif ward:
         stations = _scope_polling_stations(county, constituency, ward)
-        direct = []
-        direct_params = []
-        if county:
-            direct.append(indexed("county") + " = %s")
-            direct_params.append(_norm(county))
-        if constituency:
-            direct.append(indexed("constituency") + " = %s")
-            direct_params.append(_norm(constituency))
-        direct.append(indexed("ward") + " = %s")
-        direct_params.append(_norm(ward))
-        if stations:
-            clauses.append("((" + " AND ".join(direct) + ") OR " +
-                           indexed("polling_station") + " = ANY(%s))")
-            params.extend((*direct_params, stations))
-        else:
-            clauses.extend(direct)
-            params.extend(direct_params)
+        add_direct((("county", county), ("constituency", constituency),
+                    ("ward", ward)))
+        add_stations(stations)
     elif constituency:
         stations = _scope_polling_stations(county, constituency)
-        direct = []
-        direct_params = []
-        if county:
-            direct.append(indexed("county") + " = %s")
-            direct_params.append(_norm(county))
-        direct.append(indexed("constituency") + " = %s")
-        direct_params.append(_norm(constituency))
-        if stations:
-            clauses.append("((" + " AND ".join(direct) + ") OR " +
-                           indexed("polling_station") + " = ANY(%s))")
-            params.extend((*direct_params, stations))
-        else:
-            clauses.extend(direct)
-            params.extend(direct_params)
+        add_direct((("county", county), ("constituency", constituency)))
+        add_stations(stations)
     elif county:
         stations = _scope_polling_stations(county)
-        if stations:
-            clauses.append("(" + indexed("county") + " = %s OR " +
-                           indexed("polling_station") + " = ANY(%s))")
-            params.extend((_norm(county), stations))
-        else:
-            clauses.append(indexed("county") + " = %s")
-            params.append(_norm(county))
+        add_direct((("county", county),))
+        add_stations(stations)
+    else:
+        add_direct(())
 
-    sql = (
-        "SELECT COUNT(*) FROM master_voters WHERE "
-        + " AND ".join(clauses)
-    )
+    # Keep indexed branches separate. PostgreSQL was choosing a sequential
+    # scan for `county = value OR polling_station = ANY(...)`, even though each
+    # side has a suitable partial index. UNION lets each branch use its own
+    # index and removes duplicate voter IDs before the final count.
+    sql = "SELECT COUNT(*) FROM (" + " UNION ".join(branches) + ") AS scoped_voters"
     with psycopg.connect(database_url, connect_timeout=3, autocommit=True) as connection:
         with connection.cursor() as cursor:
             cursor.execute("SET statement_timeout TO '30s'")
             cursor.execute("SET default_transaction_read_only TO on")
+            cursor.execute("SET enable_seqscan TO off")
             cursor.execute(sql, params)
             row = cursor.fetchone()
     result = int((row or [0])[0] or 0)
