@@ -52,30 +52,33 @@ def count_registered_voters(county="", constituency="", ward="", poll_station=""
     if database_url.startswith("postgres://"):
         database_url = "postgresql://" + database_url[len("postgres://"):]
 
-    def normalized(column):
-        return ("LOWER(REGEXP_REPLACE(TRIM(COALESCE(" + column + ", '')), "
-                "'[[:space:]_-]+', ' ', 'g'))")
+    # master_voters already has partial indexes on LOWER(county),
+    # LOWER(constituency), LOWER(ward) and LOWER(polling_station) WHERE active.
+    # Do not wrap those columns in REGEXP_REPLACE/TRIM here: doing so forces a
+    # full-table scan and caused county requests to exceed the old 5s timeout.
+    def indexed(column):
+        return "LOWER(" + column + ")"
 
-    clauses = ["COALESCE(active, TRUE) IS TRUE"]
+    clauses = ["active"]
     params = []
     if poll_station:
-        clauses.append(normalized("polling_station") + " = %s")
+        clauses.append(indexed("polling_station") + " = %s")
         params.append(_norm(poll_station))
     elif ward:
         stations = _scope_polling_stations(county, constituency, ward)
         direct = []
         direct_params = []
         if county:
-            direct.append(normalized("county") + " = %s")
+            direct.append(indexed("county") + " = %s")
             direct_params.append(_norm(county))
         if constituency:
-            direct.append(normalized("constituency") + " = %s")
+            direct.append(indexed("constituency") + " = %s")
             direct_params.append(_norm(constituency))
-        direct.append(normalized("ward") + " = %s")
+        direct.append(indexed("ward") + " = %s")
         direct_params.append(_norm(ward))
         if stations:
             clauses.append("((" + " AND ".join(direct) + ") OR " +
-                           normalized("polling_station") + " = ANY(%s))")
+                           indexed("polling_station") + " = ANY(%s))")
             params.extend((*direct_params, stations))
         else:
             clauses.extend(direct)
@@ -85,13 +88,13 @@ def count_registered_voters(county="", constituency="", ward="", poll_station=""
         direct = []
         direct_params = []
         if county:
-            direct.append(normalized("county") + " = %s")
+            direct.append(indexed("county") + " = %s")
             direct_params.append(_norm(county))
-        direct.append(normalized("constituency") + " = %s")
+        direct.append(indexed("constituency") + " = %s")
         direct_params.append(_norm(constituency))
         if stations:
             clauses.append("((" + " AND ".join(direct) + ") OR " +
-                           normalized("polling_station") + " = ANY(%s))")
+                           indexed("polling_station") + " = ANY(%s))")
             params.extend((*direct_params, stations))
         else:
             clauses.extend(direct)
@@ -99,20 +102,20 @@ def count_registered_voters(county="", constituency="", ward="", poll_station=""
     elif county:
         stations = _scope_polling_stations(county)
         if stations:
-            clauses.append("(" + normalized("county") + " = %s OR " +
-                           normalized("polling_station") + " = ANY(%s))")
+            clauses.append("(" + indexed("county") + " = %s OR " +
+                           indexed("polling_station") + " = ANY(%s))")
             params.extend((_norm(county), stations))
         else:
-            clauses.append(normalized("county") + " = %s")
+            clauses.append(indexed("county") + " = %s")
             params.append(_norm(county))
 
     sql = (
-        "SELECT COUNT(DISTINCT national_id) FROM master_voters WHERE "
+        "SELECT COUNT(*) FROM master_voters WHERE "
         + " AND ".join(clauses)
     )
     with psycopg.connect(database_url, connect_timeout=3, autocommit=True) as connection:
         with connection.cursor() as cursor:
-            cursor.execute("SET statement_timeout TO '5s'")
+            cursor.execute("SET statement_timeout TO '30s'")
             cursor.execute("SET default_transaction_read_only TO on")
             cursor.execute(sql, params)
             row = cursor.fetchone()
