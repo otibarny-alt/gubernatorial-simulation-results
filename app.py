@@ -290,10 +290,18 @@ def build_summary(county='', constituency='', ward=''):
         t = row.get('closed_at') or row.get('opened_at') or ''
         if t > last_updated: last_updated = t
 
-    registered = membership_registered(snap, county, constituency, ward)
+    registered = None
+    register_warning = ''
+    try:
+        registered = membership_registered(snap, county, constituency, ward)
+    except Exception as exc:
+        # The electorate count and the submitted result feed are independent.
+        # A register connection problem must never erase valid candidates,
+        # votes, participation or stream statistics from the dashboard.
+        register_warning = str(exc)
     expected_count = len(expected)
     not_started = max(0, expected_count - opened)
-    total_votes_not_cast = max(0, registered - participants)
+    total_votes_not_cast = max(0, registered - participants) if registered is not None else None
 
     # For the national/all-counties view, the upstream aggregate is authoritative.
     # This also prevents a harmless stream-key formatting difference from hiding live votes.
@@ -312,7 +320,7 @@ def build_summary(county='', constituency='', ward=''):
                     candidate_names[cid] = c.get('name') or cid
                     candidate_counties[cid] = candidate_county(c) or candidate_counties.get(cid) or friendly(CANDIDATE_DEFAULT_COUNTY)
                     candidate_votes[cid] = to_int(c.get('votes'))
-        total_votes_not_cast = max(0, registered - participants)
+        total_votes_not_cast = max(0, registered - participants) if registered is not None else None
 
     candidates = []
     for cid in set(candidate_names) | set(candidate_votes):
@@ -338,8 +346,8 @@ def build_summary(county='', constituency='', ward=''):
             'candidate_selections': candidate_selections,
             'skipped': skipped,
             'participants': participants,
-            'turnout_percent': round(participants / registered * 100, 2) if registered else 0,
-            'skip_percent_registered': round(skipped / registered * 100, 2) if registered else 0,
+            'turnout_percent': round(participants / registered * 100, 2) if registered else None,
+            'skip_percent_registered': round(skipped / registered * 100, 2) if registered else None,
             'total_votes_not_cast': total_votes_not_cast,
         },
         'reporting': {
@@ -352,7 +360,7 @@ def build_summary(county='', constituency='', ward=''):
         'last_updated': last_updated,
         'data_age_seconds': max(0, int(time.time() - _cache['snapshot_at'])) if _cache['snapshot_at'] else None,
         'using_cached_snapshot': bool(_cache['last_error']),
-        'warning': _cache['last_error'] if _cache['last_error'] else '',
+        'warning': ' — '.join(part for part in (_cache['last_error'], register_warning) if part),
     }
 
 def build_stream_status(county='', constituency='', ward='', submission_status='all', page=1, page_size=100):
