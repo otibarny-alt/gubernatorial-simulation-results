@@ -70,39 +70,13 @@ def membership_registered(snapshot, county='', constituency='', ward='', poll_st
     try:
         return count_registered_voters(county, constituency, ward, poll_station)
     except Exception as exc:
-        app.logger.warning('Direct PostgreSQL voter count unavailable; using voting API breakdown: %s', exc)
-    response = requests.get(
-        SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
-        params={'county': county, 'constituency': constituency, 'ward': ward, 'polling_station': poll_station},
-        headers={'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY, 'Accept': 'application/json'},
-        timeout=(5, 120),
-    )
-    if response.status_code != 200:
-        raise RuntimeError('Authoritative voters-register count is unavailable; no voter total will be displayed.')
-    payload = response.json()
-    if not payload.get('ok'):
-        raise RuntimeError(payload.get('error') or 'Authoritative voters-register count failed.')
-    return to_int(payload.get('registered_voters'))
-    rows = snapshot.get('registered_voter_breakdown')
-    if not isinstance(rows, list):
-        return 0
-    filters = {'county': county, 'constituency': constituency, 'ward': ward, 'poll_station': poll_station}
-    aliases = {}
-    geography = list(load_geo().get('by_stream', {}).values())
-    for field, value in filters.items():
-        if not value:
-            aliases[field] = set()
-            continue
-        accepted = {norm(value), norm(friendly(value))}
-        for geo in geography:
-            pair = {norm(geo.get(field)), norm(geo.get(field + '_label'))}
-            if accepted & pair:
-                accepted.update(pair)
-        accepted.discard('')
-        aliases[field] = accepted
-    return sum(to_int(row.get('registered_voters')) for row in rows
-               if all(not value or norm(row.get(field)) in aliases[field]
-                      for field, value in filters.items()))
+        app.logger.exception('Direct PostgreSQL voter count failed')
+        raise RuntimeError(
+            'Registered-voter count could not be read directly from PostgreSQL. '
+            'Set MASTER_REGISTER_DATABASE_URL on this dashboard to the voting '
+            'system database Internal URL, then redeploy. The dashboard will not '
+            'display a partial fallback total.'
+        ) from exc
 
 
 def candidate_county(record):
