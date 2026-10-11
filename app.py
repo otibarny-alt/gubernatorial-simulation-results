@@ -49,6 +49,9 @@ _fetch_lock = threading.Lock()
 _cache = {'snapshot': None, 'snapshot_at': 0.0, 'last_error': ''}
 _geo = None
 _registered = None
+_voter_count_cache = {}
+_voter_count_cache_lock = threading.Lock()
+VOTER_COUNT_CACHE_SECONDS = max(60, int(os.getenv('VOTER_COUNT_CACHE_SECONDS', '600')))
 
 
 def norm(v):
@@ -68,26 +71,58 @@ def to_int(v):
 
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
     def authoritative_count(selected_constituency='', selected_ward='', selected_station=''):
-        response = _http.get(
-            SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
-            params={
-                'county': county,
-                'constituency': selected_constituency,
-                'ward': selected_ward,
-                'polling_station': selected_station,
-            },
-            headers={
-                'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY,
-                'Accept': 'application/json',
-            },
-            timeout=(5, 120),
-        )
-        if response.status_code != 200:
-            raise RuntimeError('Voters Register count service returned HTTP ' + str(response.status_code) + '.')
-        payload = response.json()
-        if not payload.get('ok'):
-            raise RuntimeError(payload.get('error') or 'Voters Register count failed.')
-        return to_int(payload.get('registered_voters'))
+        # Dashboard dropdowns use URL-safe keys such as west_pokot and
+        # pokot_south.  The register stores human names with spaces.  Send the
+        # human form so an exact register filter cannot silently miss rows.
+        params = {
+            'county': friendly(county),
+            'constituency': friendly(selected_constituency),
+            'ward': friendly(selected_ward),
+            'polling_station': friendly(selected_station),
+        }
+        cache_key = tuple(norm(params[k]) for k in ('county', 'constituency', 'ward', 'polling_station'))
+        now = time.time()
+        with _voter_count_cache_lock:
+            cached = _voter_count_cache.get(cache_key)
+        if cached and now - cached['at'] <= VOTER_COUNT_CACHE_SECONDS:
+            return cached['count']
+
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = _http.get(
+                    SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
+                    params=params,
+                    headers={
+                        'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY,
+                        'Accept': 'application/json',
+                    },
+                    timeout=(5, 120),
+                )
+                if response.status_code == 200:
+                    payload = response.json()
+                    if not payload.get('ok'):
+                        raise RuntimeError(payload.get('error') or 'Voters Register count failed.')
+                    count = to_int(payload.get('registered_voters'))
+                    with _voter_count_cache_lock:
+                        _voter_count_cache[cache_key] = {'count': count, 'at': time.time()}
+                    return count
+                last_error = RuntimeError(
+                    'Voters Register count service returned HTTP ' + str(response.status_code) + '.'
+                )
+                if response.status_code not in (502, 503, 504):
+                    break
+            except Exception as exc:
+                last_error = exc
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+
+        # A temporary Render/upstream failure must not erase a count already
+        # shown to election officials.  Use stale cache only after all retries.
+        if cached:
+            app.logger.warning('Using last successful Voters Register count after upstream failure: %s', last_error)
+            return cached['count']
+        raise last_error or RuntimeError('Voters Register count service did not respond.')
 
     try:
         if constituency or ward or poll_station:
