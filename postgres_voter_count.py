@@ -62,32 +62,49 @@ def count_registered_voters(county="", constituency="", ward="", poll_station=""
         clauses.append(normalized("polling_station") + " = %s")
         params.append(_norm(poll_station))
     elif ward:
-        if county:
-            clauses.append(normalized("county") + " = %s")
-            params.append(_norm(county))
         stations = _scope_polling_stations(county, constituency, ward)
-        if stations:
-            clauses.append("(" + normalized("ward") + " = %s OR " +
-                           normalized("polling_station") + " = ANY(%s))")
-            params.extend((_norm(ward), stations))
-        else:
-            clauses.append(normalized("ward") + " = %s")
-            params.append(_norm(ward))
-    elif constituency:
+        direct = []
+        direct_params = []
         if county:
+            direct.append(normalized("county") + " = %s")
+            direct_params.append(_norm(county))
+        if constituency:
+            direct.append(normalized("constituency") + " = %s")
+            direct_params.append(_norm(constituency))
+        direct.append(normalized("ward") + " = %s")
+        direct_params.append(_norm(ward))
+        if stations:
+            clauses.append("((" + " AND ".join(direct) + ") OR " +
+                           normalized("polling_station") + " = ANY(%s))")
+            params.extend((*direct_params, stations))
+        else:
+            clauses.extend(direct)
+            params.extend(direct_params)
+    elif constituency:
+        stations = _scope_polling_stations(county, constituency)
+        direct = []
+        direct_params = []
+        if county:
+            direct.append(normalized("county") + " = %s")
+            direct_params.append(_norm(county))
+        direct.append(normalized("constituency") + " = %s")
+        direct_params.append(_norm(constituency))
+        if stations:
+            clauses.append("((" + " AND ".join(direct) + ") OR " +
+                           normalized("polling_station") + " = ANY(%s))")
+            params.extend((*direct_params, stations))
+        else:
+            clauses.extend(direct)
+            params.extend(direct_params)
+    elif county:
+        stations = _scope_polling_stations(county)
+        if stations:
+            clauses.append("(" + normalized("county") + " = %s OR " +
+                           normalized("polling_station") + " = ANY(%s))")
+            params.extend((_norm(county), stations))
+        else:
             clauses.append(normalized("county") + " = %s")
             params.append(_norm(county))
-        stations = _scope_polling_stations(county, constituency)
-        if stations:
-            clauses.append("(" + normalized("constituency") + " = %s OR " +
-                           normalized("polling_station") + " = ANY(%s))")
-            params.extend((_norm(constituency), stations))
-        else:
-            clauses.append(normalized("constituency") + " = %s")
-            params.append(_norm(constituency))
-    elif county:
-        clauses.append(normalized("county") + " = %s")
-        params.append(_norm(county))
 
     sql = (
         "SELECT COUNT(DISTINCT national_id) FROM master_voters WHERE "
