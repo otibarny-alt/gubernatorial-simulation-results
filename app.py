@@ -67,15 +67,51 @@ def to_int(v):
         return 0
 
 def membership_registered(snapshot, county='', constituency='', ward='', poll_station=''):
+    def authoritative_count(selected_constituency='', selected_ward='', selected_station=''):
+        response = _http.get(
+            SIMULATION_BASE_URL.rstrip('/') + '/api/voters-register/count',
+            params={
+                'county': county,
+                'constituency': selected_constituency,
+                'ward': selected_ward,
+                'polling_station': selected_station,
+            },
+            headers={
+                'X-Dashboard-Key': SIMULATION_DASHBOARD_API_KEY,
+                'Accept': 'application/json',
+            },
+            timeout=(5, 120),
+        )
+        if response.status_code != 200:
+            raise RuntimeError('Voters Register count service returned HTTP ' + str(response.status_code) + '.')
+        payload = response.json()
+        if not payload.get('ok'):
+            raise RuntimeError(payload.get('error') or 'Voters Register count failed.')
+        return to_int(payload.get('registered_voters'))
+
     try:
-        return count_registered_voters(county, constituency, ward, poll_station)
+        if constituency or ward or poll_station:
+            return authoritative_count(constituency, ward, poll_station)
+
+        # County records contain legacy geography variations. The protected
+        # Voters Register is authoritative at constituency level, so derive a
+        # county total by summing every constituency in the selected county.
+        # This also includes legacy Kobo members and applies the register's
+        # National-ID deduplication rules.
+        constituency_rows = list(
+            load_geo().get('constituencies_ui', {}).get(norm(county), {}).values()
+        )
+        if constituency_rows:
+            return sum(
+                authoritative_count(str(item.get('value') or ''))
+                for item in constituency_rows
+            )
+        return authoritative_count()
     except Exception as exc:
-        app.logger.exception('Direct PostgreSQL voter count failed')
+        app.logger.exception('Authoritative Voters Register count failed')
         raise RuntimeError(
-            'Registered-voter count could not be read directly from PostgreSQL. '
-            'Set MASTER_REGISTER_DATABASE_URL on this dashboard to the voting '
-            'system database Internal URL, then redeploy. The dashboard will not '
-            'display a partial fallback total.'
+            'Registered-voter count could not be read from the authoritative '
+            'Voters Register service. Candidate results remain available.'
         ) from exc
 
 
