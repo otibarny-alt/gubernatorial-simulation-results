@@ -40,7 +40,7 @@ SMTP_PORT = int(os.getenv('SMTP_PORT', '587') or 587)
 SMTP_USERNAME = os.getenv('SMTP_USERNAME', '').strip()
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', SMTP_USERNAME).strip()
-SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', '2027 Gubernatorial Simulation Results').strip()
+SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', '2027 Gubernatorial Nomination Results').strip()
 SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'true').strip().lower() in {'1','true','yes','on'}
 SMTP_USE_SSL = os.getenv('SMTP_USE_SSL', 'false').strip().lower() in {'1','true','yes','on'}
 
@@ -587,7 +587,7 @@ def build_results_pdf(summary):
     notice_style = ParagraphStyle('Notice', parent=styles['Normal'], alignment=TA_CENTER, fontSize=9, leading=12, textColor=colors.HexColor('#A14E00'), spaceAfter=10)
     meta_style = ParagraphStyle('Meta', parent=styles['Normal'], fontSize=9, leading=12, spaceAfter=10)
     story = [
-        Paragraph('2027 Gubernatorial Simulation Results', title_style),
+        Paragraph('2027 Gubernatorial Nomination Results', title_style),
         Paragraph('<b>TRAINING / SIMULATION ONLY — NON-BINDING</b>', notice_style),
     ]
     f = summary.get('filters') or {}

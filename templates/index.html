@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2027 Gubernatorial Simulation Results Dashboard</title>
+<title>2027 Gubernatorial Nomination Results Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root{--ink:#172033;--muted:#667085;--line:#e6e8ec;--panel:#fff;--bg:#f5f7fa;--accent:#ef7d00}
@@ -15,7 +15,7 @@
 </style>
 </head>
 <body>
-<div class="header"><div class="title"><h1>2027 Gubernatorial Simulation Results Dashboard</h1><p>Live TRAINING / SIMULATION results — non-binding</p></div><div>{% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}</div></div>
+<div class="header"><div class="title"><h1>2027 Gubernatorial Nomination Results Dashboard</h1><p>Live TRAINING / SIMULATION results — non-binding</p></div><div>{% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}</div></div>
 <div class="wrap">
  <div class="controls">
   <span class="badge">TRAINING / SIMULATION ONLY</span>
@@ -25,7 +25,7 @@
   <button class="primary" id="applyBtn">Apply Filters</button>
   <button id="refreshBtn">Refresh Now</button>
  </div>
- <div class="status" id="status">Dashboard ready. Loading live gubernatorial simulation results…</div>
+ <div class="status" id="status">Dashboard ready. Loading live gubernatorial nomination results…</div>
  <div class="stats">
   <div class="stat"><div class="v" id="registered">0</div><div class="l">Registered Voters</div></div>
   <div class="stat"><div class="v" id="cast">0</div><div class="l">Total Votes Cast</div></div>
@@ -91,7 +91,7 @@ function renderStreamStatus(d){
 }
 async function loadStreamStatus(page=1){if(!$('county').value){$('streamStatusBody').innerHTML='<tr><td colspan="8">Select a county to load stream results.</td></tr>';return}if(streamBusy)return;streamBusy=true;try{renderStreamStatus(await getJSON('/api/stream-status'+streamQuery(page),{cache:'no-store'}))}catch(e){$('streamStatusBody').innerHTML='<tr><td colspan="8">'+e.message+'</td></tr>'}finally{streamBusy=false}}
 
-async function loadSummary(){if(!$('county').value){$('status').textContent='Select a county, then choose Apply Filters. National presentation is disabled for performance.';return}if(busy)return;busy=true;$('status').textContent='Loading live gubernatorial simulation results for the selected county…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
+async function loadSummary(){if(!$('county').value){$('status').textContent='Select a county, then choose Apply Filters. National presentation is disabled for performance.';return}if(busy)return;busy=true;$('status').textContent='Loading live gubernatorial nomination results for the selected county…';try{render(await getJSON('/api/summary'+query(),{cache:'no-store'}))}catch(e){$('status').textContent=e.message+' — automatic retry will continue.'}finally{busy=false}}
 $('printResultsBtn').addEventListener('click',()=>{
   const c=$('county').selectedOptions[0]?.text||'All Counties', k=$('constituency').selectedOptions[0]?.text||'All Constituencies', w=$('ward').selectedOptions[0]?.text||'All Wards';
   const table=$('gubernatorialResultsCard').querySelector('table').outerHTML;
